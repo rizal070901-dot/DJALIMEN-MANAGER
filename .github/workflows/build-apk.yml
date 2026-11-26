@@ -300,12 +300,52 @@ jobs:
           editor_ui = Path("manager/src/main/java/frb/axeron/manager/ui/screen/SettingsEditor.kt")
           editor_text = editor_ui.read_text(encoding="utf-8")
           old_display = "highlightMatches(entry.keyDisplay, query, matchStyle)"
-          new_display = 'highlightMatches(entry.keyDisplay.replace("AXERON", "DJALIMEN"), query, matchStyle)'
+          new_display = 'highlightMatches(entry.keyDisplay.replace(Regex("(?i)axeron"), "DJALIMEN"), query, matchStyle)'
           if old_display not in editor_text:
               raise SystemExit("Settings editor display-key anchor missing")
-          editor_text = editor_text.replace(old_display, new_display, 1)
+          editor_text = editor_text.replace(old_display, new_display)
+          # Environment values such as /data/.../axeron/bin are presentation-only aliases.
+          # Keep the real filesystem paths and service protocol untouched.
+          env_value_anchor = "            text = text,"
+          env_value_display = '            text = text.replace(Regex("(?i)axeron"), "djalimen"),'
+          if env_value_anchor not in editor_text:
+              raise SystemExit("Settings editor environment-value display anchor missing")
+          editor_text = editor_text.replace(env_value_anchor, env_value_display, 1)
           editor_ui.write_text(editor_text, encoding="utf-8")
-          print("Applied DJALIMEN display labels to legacy environment keys; backend identifiers preserved.")
+          print("Applied DJALIMEN display aliases to legacy environment keys and values; backend identifiers preserved.")
+
+          # Replace legacy Axeron small notification icons with an original DJALIMEN mark.
+          # Small notification icons must be monochrome for Android System UI.
+          notification_icon = """<?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="24dp" android:height="24dp"
+              android:viewportWidth="24" android:viewportHeight="24">
+              <path android:fillColor="#FFFFFFFF"
+                  android:pathData="M12,2 L22,12 L12,22 L2,12 Z M12,5.2 L5.2,12 L12,18.8 L18.8,12 Z"/>
+              <path android:fillColor="#FFFFFFFF"
+                  android:pathData="M8,7 L13,7 C16.1,7 18,9 18,12 C18,15 16.1,17 13,17 L8,17 Z M10.5,9.3 L10.5,14.7 L13,14.7 C14.7,14.7 15.5,13.7 15.5,12 C15.5,10.3 14.7,9.3 13,9.3 Z"
+                  android:fillType="evenOdd"/>
+          </vector>
+          """
+          for module in ("adb", "manager"):
+              icon_path = Path(module) / "src/main/res/drawable/ic_djalimen_notification.xml"
+              icon_path.parent.mkdir(parents=True, exist_ok=True)
+              icon_path.write_text(notification_icon, encoding="utf-8")
+
+          adb_service = Path("adb/src/main/java/frb/axeron/adb/AdbPairingService.kt")
+          adb_text = adb_service.read_text(encoding="utf-8")
+          if ".setSmallIcon(R.drawable.ic_axeron)" not in adb_text:
+              raise SystemExit("ADB pairing notification icon anchor missing")
+          adb_text = adb_text.replace(".setSmallIcon(R.drawable.ic_axeron)", ".setSmallIcon(R.drawable.ic_djalimen_notification)", 1)
+          adb_service.write_text(adb_text, encoding="utf-8")
+
+          watchdog = Path("manager/src/main/java/frb/axeron/manager/adb/BootWatchdogService.kt")
+          watchdog_text = watchdog.read_text(encoding="utf-8")
+          if ".setSmallIcon(R.drawable.ic_axeron)" not in watchdog_text:
+              raise SystemExit("Boot watchdog notification icon anchor missing")
+          watchdog_text = watchdog_text.replace(".setSmallIcon(R.drawable.ic_axeron)", ".setSmallIcon(R.drawable.ic_djalimen_notification)", 1)
+          watchdog.write_text(watchdog_text, encoding="utf-8")
+          print("Replaced ADB pairing and boot-watchdog notification icons with DJALIMEN branding.")
 
           # DJALIMEN visual identity: vivid blue accent; all resource identifiers remain unchanged.
           colors = res / "values" / "colors.xml"

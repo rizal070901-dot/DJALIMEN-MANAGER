@@ -44,6 +44,32 @@ jobs:
           p.write_text(s.replace(old, '        // CI: use standard Android debug signing config', 1))
           PY
 
+      - name: Apply DJALIMEN app branding
+        working-directory: upstream
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          strings = Path("manager/src/main/res/values/strings.xml")
+          text = strings.read_text()
+          old = '<string name="app_name">AxManager</string>'
+          if old not in text:
+              raise SystemExit("Expected app_name resource was not found; refusing an unsafe partial rebrand")
+          strings.write_text(text.replace(old, '<string name="app_name">DJALIMEN MANAGER</string>', 1))
+
+          settings = Path("settings.gradle.kts")
+          text = settings.read_text()
+          if 'rootProject.name = "AxManager"' not in text:
+              raise SystemExit("Expected Gradle project name was not found")
+          settings.write_text(text.replace('rootProject.name = "AxManager"', 'rootProject.name = "DJALIMEN MANAGER"', 1))
+
+          gradle = Path("manager/build.gradle.kts")
+          text = gradle.read_text()
+          if '"AxManager_v' not in text:
+              raise SystemExit("Expected APK output naming pattern was not found")
+          gradle.write_text(text.replace('"AxManager_v', '"DJALIMEN-MANAGER_v', 1))
+          PY
+
       - name: Build debug APK
         working-directory: upstream
         run: |

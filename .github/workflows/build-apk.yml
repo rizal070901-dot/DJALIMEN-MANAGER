@@ -154,7 +154,7 @@ jobs:
           action_start = s.find('            IconButton(onClick = { uriHandler.openUri(githubIssueUrl) })')
           if action_start < 0:
               raise SystemExit("Report issue action anchor not found in Home.kt")
-          action_end = s.find("\\n        }\\n    }\\n}", action_start)
+          action_end = s.find("\n        }\n    }\n}", action_start)
           if action_end < 0:
               raise SystemExit("Could not locate end of report issue actions")
           new_youtube_action = """            IconButton(onClick = { uriHandler.openUri(youtubeUrl) }) {

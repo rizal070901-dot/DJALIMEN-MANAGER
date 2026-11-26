@@ -78,6 +78,48 @@ jobs:
 
           print("Updated string resources:", *changed, sep="\\n - ")
           print("Verified launcher label: DJALIMEN MANAGER")
+          # Rebrand the About / Support surfaces while preserving upstream attribution and behavior.
+          settings_ui = Path("manager/src/main/java/frb/axeron/manager/ui/screen/Settings.kt")
+          s = settings_ui.read_text(encoding="utf-8")
+          replacements = {
+              'val githubUrl = "https://github.com/fahrez182"': 'val githubUrl = "https://github.com/rizal070901-dot/DJALIMEN-MANAGER"',
+              'val sociabuzzUrl = "https://sociabuzz.com/fahrezone/tribe"': 'val sociabuzzUrl = "https://github.com/rizal070901-dot/DJALIMEN-MANAGER"',
+              'text = "fahrez182 (FahrezONE)"': 'text = "DJALIMEN CHANNEL"',
+              'text = "“Everything is an Idea”"': 'text = "“Built for performance. Powered by the community.”"',
+          }
+          for old, new in replacements.items():
+              if old not in s:
+                  raise SystemExit("Settings About patch target missing: " + old)
+              s = s.replace(old, new, 1)
+          credit = '                Text(\n                    text = stringResource(R.string.developer_and_maintainer),'
+          if credit not in s:
+              raise SystemExit("About attribution insertion point missing")
+          s = s.replace(credit, '                Text(\n                    text = "Open-source foundation: AxManager by FahrezRB",\n                    fontSize = 12.sp,\n                    color = MaterialTheme.colorScheme.onSurfaceVariant\n                )\n\n' + credit, 1)
+          settings_ui.write_text(s, encoding="utf-8")
+
+          home_ui = Path("manager/src/main/java/frb/axeron/manager/ui/screen/Home.kt")
+          s = home_ui.read_text(encoding="utf-8")
+          s = s.replace('https://github.com/fahrez182/AxManager/issues', 'https://github.com/rizal070901-dot/DJALIMEN-MANAGER/issues')
+          s = s.replace('https://github.com/fahrez182/AxManager', 'https://github.com/rizal070901-dot/DJALIMEN-MANAGER')
+          s = s.replace('https://fahrez182.github.io/AxManager', 'https://github.com/rizal070901-dot/DJALIMEN-MANAGER#readme')
+          home_ui.write_text(s, encoding="utf-8")
+
+          # DJALIMEN visual identity: vivid blue accent; all resource identifiers remain unchanged.
+          colors = res / "values" / "colors.xml"
+          s = colors.read_text(encoding="utf-8")
+          if '<color name="orange">#D3460E</color>' not in s:
+              raise SystemExit("Brand accent color target missing")
+          colors.write_text(s.replace('<color name="orange">#D3460E</color>', '<color name="orange">#5577FF</color>', 1), encoding="utf-8")
+
+          # Keep the original Apache license and upstream NOTICE intact; add distribution attribution.
+          notice = Path("NOTICE")
+          if notice.exists():
+              s = notice.read_text(encoding="utf-8")
+              header = "DJALIMEN MANAGER\nCommunity-maintained branded distribution.\nThe underlying AxManager code and third-party components retain their original copyrights and licenses.\n\n"
+              if not s.startswith("DJALIMEN MANAGER\\n"):
+                  notice.write_text(header + s, encoding="utf-8")
+
+          print("Applied DJALIMEN About, Support, accent, and attribution updates.")
           PY
 
       - name: Build debug APK

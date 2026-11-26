@@ -710,7 +710,7 @@ jobs:
           print("Migrated actual API and service packages in " + str(len(migrated)) + " source/config files.")
           print("DJALIMEN service entry point: com.djalimen.server.AxeronService")
           print("DJALIMEN API namespace: com.djalimen.api")
-                    print("Applied DJALIMEN About, Support, accent, and attribution updates.")
+          print("Applied DJALIMEN About, Support, accent, and attribution updates.")
           PY
 
       - name: Build debug APK

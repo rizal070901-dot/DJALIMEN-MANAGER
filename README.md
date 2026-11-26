@@ -1,12 +1,12 @@
 # DJALIMEN MANAGER
 
-**DJALIMEN MANAGER** adalah distribusi komunitas dengan identitas visual DJALIMEN yang dibangun di atas fondasi open-source AxManager.
+**DJALIMEN MANAGER** adalah proyek yang dikembangkan dan dipelihara secara independen dengan identitas DJALIMEN, berlandaskan komponen open-source dari para pengembang aslinya.
 
-## Fitur fondasi
+## Fitur
 
-- Aktivasi Root, Wireless ADB, TCP ADB, aktivasi melalui komputer/browser/OTG.
+- Aktivasi Root, Wireless ADB, TCP ADB, serta aktivasi melalui komputer, browser, dan OTG.
 - Start-on-boot dan pemantauan status server.
-- Pengelolaan hak akses per aplikasi dan kompatibilitas Shizuku API.
+- Pengelolaan hak akses aplikasi dan kompatibilitas Shizuku API.
 - Plugin/module manager dengan WebUI.
 - QuickShell, Settings Editor, Process Manager, dan pengaturan tampilan.
 
@@ -24,23 +24,17 @@ Build otomatis tersedia melalui tab **Actions** pada workflow **Build DJALIMEN M
 
 ## Branding dan perubahan
 
-Identitas DJALIMEN diterapkan pada nama aplikasi, teks UI, halaman Tentang/Dukungan, tautan proyek, dan aksen warna. Perubahan branding tidak mengubah applicationId, protokol, izin Android, maupun implementasi fitur inti.
+Identitas DJALIMEN digunakan untuk nama aplikasi, tampilan, halaman Tentang/Dukungan, dan materi proyek. Perubahan branding dipisahkan dari implementasi fitur inti. Nama package, applicationId, protokol, izin Android, dan komponen layanan tidak diubah oleh pembaruan dokumentasi ini.
 
-## Lisensi dan atribusi
+## Asal-usul dan atribusi
 
-# DJALIMEN MANAGER
+DJALIMEN MANAGER merupakan proyek turunan yang menggunakan dan memodifikasi komponen open-source, termasuk fondasi **[AxManager](https://github.com/fahrez182/AxManager)** oleh FahrezRB. DJALIMEN bertanggung jawab atas pengembangan, pemeliharaan, dan perubahan yang dibuat khusus untuk distribusi DJALIMEN.
 
-**Copyright © 2026 DJALIMEN.**
+Atribusi, pemberitahuan hak cipta, dan ketentuan lisensi dari proyek upstream serta komponen pihak ketiga tetap dipertahankan. DJALIMEN MANAGER bukan rilis resmi atau produk yang didukung oleh pengembang upstream.
 
-DJALIMEN MANAGER is an independently maintained and modified software project.
+- [LICENSE](LICENSE) — teks lisensi dan pemberitahuan lisensi.
+- [NOTICE](NOTICE) — atribusi upstream dan komponen pihak ketiga.
 
-This project incorporates and modifies open-source components originally developed by their respective authors, including AxManager by FahrezRB.
+## Lisensi
 
-All upstream copyright notices, attribution requirements, and applicable open-source licenses are retained in accordance with their respective license terms.
-
-DJALIMEN is responsible for its own modifications, development, maintenance, and branding.
-
-**License:** Apache License 2.0 (including applicable upstream components).
-
-See [LICENSE](https://github.com/rizal070901-dot/DJALIMEN-MANAGER/blob/main/LICENSE) and [NOTICE](https://github.com/rizal070901-dot/DJALIMEN-MANAGER/blob/main/NOTICE).
-DJALIMEN MANAGER merupakan distribusi komunitas dan bukan proyek resmi dari pengembang upstream.
+Kode dan komponen dalam repositori ini dapat memiliki ketentuan lisensi yang berbeda. Komponen yang berlisensi Apache License 2.0 tunduk pada [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0); komponen lain tetap mengikuti lisensi masing-masing. Periksa file lisensi di direktori komponen terkait, termasuk `api/LICENSE` bila menggunakan API tersebut.

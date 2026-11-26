@@ -109,6 +109,18 @@ jobs:
               raise SystemExit("Upstream support button expression not found")
           s = s.replace(old_support, 'Text("Dukung DJALIMEN di GitHub")', 1)
           settings_ui.write_text(s, encoding="utf-8")
+          # Generate a dedicated YouTube vector icon for the About action.
+          youtube_icon = Path("manager/src/main/res/drawable/ic_youtube.xml")
+          youtube_icon.write_text("""<?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="24dp" android:height="24dp"
+              android:viewportWidth="24" android:viewportHeight="24">
+              <path android:fillColor="#FFFFFFFF"
+                  android:pathData="M23.5,6.2c-0.3,-1.1 -1.2,-2 -2.3,-2.3C19.2,3.4 12,3.4 12,3.4s-7.2,0 -9.2,0.5C1.7,4.2 0.8,5.1 0.5,6.2 0,8.2 0,12 0,12s0,3.8 0.5,5.8c0.3,1.1 1.2,2 2.3,2.3 2,0.5 9.2,0.5 9.2,0.5s7.2,0 9.2,-0.5c1.1,-0.3 2,-1.2 2.3,-2.3C24,15.8 24,12 24,12s0,-3.8 -0.5,-5.8z"/>
+              <path android:fillColor="#FF080F1D" android:pathData="M9.6,15.8L9.6,8.2 16,12z"/>
+          </vector>
+          """, encoding="utf-8")
+
 
           home_ui = Path("manager/src/main/java/frb/axeron/manager/ui/screen/Home.kt")
           s = home_ui.read_text(encoding="utf-8")
@@ -154,7 +166,7 @@ jobs:
           ) {
               val uriHandler = LocalUriHandler.current
               val githubUrl = "https://github.com/rizal070901-dot/DJALIMEN-MANAGER"
-              val telegramUrl = "https://t.me/fahrezone"
+              val youtubeUrl = "https://youtube.com/@djalimenchannel?si=-E0j7Hh9ryEFMljD"
               val supportUrl = "https://github.com/rizal070901-dot/DJALIMEN-MANAGER"
 
               if (showDialog) {
@@ -237,12 +249,12 @@ jobs:
                                   Text("GitHub")
                               }
                               FilledTonalButton(
-                                  onClick = { uriHandler.openUri(telegramUrl) },
+                                  onClick = { uriHandler.openUri(youtubeUrl) },
                                   modifier = Modifier.weight(1f).height(48.dp)
                               ) {
-                                  Icon(painter = painterResource(id = R.drawable.ic_telegram), contentDescription = "Telegram", modifier = Modifier.size(19.dp))
+                                  Icon(painter = painterResource(id = R.drawable.ic_youtube), contentDescription = "YouTube", modifier = Modifier.size(19.dp))
                                   Spacer(Modifier.width(7.dp))
-                                  Text("Telegram")
+                                  Text("YouTube")
                               }
                           }
 

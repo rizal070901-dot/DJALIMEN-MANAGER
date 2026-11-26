@@ -145,6 +145,34 @@ jobs:
           s = s.replace('https://github.com/fahrez182/AxManager/issues', 'https://github.com/rizal070901-dot/DJALIMEN-MANAGER/issues')
           s = s.replace('https://github.com/fahrez182/AxManager', 'https://github.com/rizal070901-dot/DJALIMEN-MANAGER')
           s = s.replace('https://fahrez182.github.io/AxManager', 'https://github.com/rizal070901-dot/DJALIMEN-MANAGER#readme')
+          # Replace report-issue controls with a direct DJALIMEN YouTube link.
+          s = s.replace('val telegramUrl = "https://t.me/axeron_manager"', 'val youtubeUrl = "https://youtube.com/@djalimenchannel?si=-E0j7Hh9ryEFMljD"')
+          s = s.replace('title = stringResource(R.string.report_issue),', 'title = "YouTube DJALIMEN",')
+          s = s.replace('message = "\${stringResource(R.string.report_issue_msg)} \${stringResource(R.string.report_issue_msg2)}",', 'message = "Kunjungi kanal YouTube resmi DJALIMEN.",')
+          old_issue_actions = """            IconButton(onClick = { uriHandler.openUri(githubIssueUrl) }) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_github),
+                    contentDescription = "Report to github",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            IconButton(onClick = { uriHandler.openUri(telegramUrl) }) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_telegram),
+                    contentDescription = "Report to telegram",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }"""
+          new_youtube_action = """            IconButton(onClick = { uriHandler.openUri(youtubeUrl) }) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_youtube),
+                    contentDescription = "Buka YouTube DJALIMEN",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }"""
+          if old_issue_actions not in s:
+              raise SystemExit("Old report issue button block not found")
+          s = s.replace(old_issue_actions, new_youtube_action, 1)
           home_ui.write_text(s, encoding="utf-8")
 
           # DJALIMEN visual identity: vivid blue accent; all resource identifiers remain unchanged.
@@ -176,6 +204,11 @@ jobs:
           # Completely redesign the About bottom sheet while keeping the original navigation actions.
           settings_ui = Path("manager/src/main/java/frb/axeron/manager/ui/screen/Settings.kt")
           s = settings_ui.read_text(encoding="utf-8")
+          shape_import = "import androidx.compose.foundation.shape.CircleShape"
+          if "import androidx.compose.foundation.shape.RoundedCornerShape" not in s:
+              if shape_import not in s:
+                  raise SystemExit("Settings shape import anchor missing")
+              s = s.replace(shape_import, shape_import + "\nimport androidx.compose.foundation.shape.RoundedCornerShape", 1)
           start = s.index("fun DeveloperInfo(")
           end = s.index(chr(10) + "private fun isShizukuAppInstalled", start)
           about_ui = """fun DeveloperInfo(
@@ -246,7 +279,6 @@ jobs:
                               }
                           }
 
-                          Text(
                           Surface(
                               color = Color(0xFF14294B),
                               shape = RoundedCornerShape(50),

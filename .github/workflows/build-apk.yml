@@ -109,25 +109,26 @@ jobs:
               raise SystemExit("About support label target missing")
           s = s.replace(support_label, 'Text("Dukung DJALIMEN di GitHub")', 1)
 
-          # Insert license entry by anchoring to the actual support button, independent of surrounding indentation.
+          # Insert license entry using a regex anchored to the support button.
           pattern = r'(Text\\("Dukung DJALIMEN di GitHub"\\)\\s*\\n\\s*}\\s*\\n)(\\s*Spacer\\(modifier = Modifier\\.height\\(16\\.dp\\)\\))'
-          license_ui = """\\
-                Spacer(modifier = Modifier.height(8.dp))
-
-                FilledTonalButton(
-                    onClick = { uriHandler.openUri("https://github.com/rizal070901-dot/DJALIMEN-MANAGER/blob/main/LICENSE") },
-                    modifier = Modifier.height(38.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Info,
-                        contentDescription = "License and attribution",
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text("Lisensi & Atribusi")
-                }
-
-"""
+          license_lines = [
+              '                Spacer(modifier = Modifier.height(8.dp))',
+              '',
+              '                FilledTonalButton(',
+              '                    onClick = { uriHandler.openUri("https://github.com/rizal070901-dot/DJALIMEN-MANAGER/blob/main/LICENSE") },',
+              '                    modifier = Modifier.height(38.dp)',
+              '                ) {',
+              '                    Icon(',
+              '                        imageVector = Icons.Outlined.Info,',
+              '                        contentDescription = "License and attribution",',
+              '                        modifier = Modifier.size(20.dp)',
+              '                    )',
+              '                    Spacer(Modifier.width(8.dp))',
+              '                    Text("Lisensi & Atribusi")',
+              '                }',
+              '',
+          ]
+          license_ui = "\\n".join(license_lines)
           s, count = re.subn(pattern, lambda m: m.group(1) + license_ui + m.group(2), s, count=1)
           if count != 1:
               raise SystemExit("Could not insert license entry after DJALIMEN support button")

@@ -124,6 +124,146 @@ jobs:
               raise SystemExit("Brand accent color target missing")
           colors.write_text(s.replace('<color name="orange">#D3460E</color>', '<color name="orange">#5577FF</color>', 1), encoding="utf-8")
           
+          # Apply a complete DJALIMEN Midnight Blue Material 3 theme.
+          color_kt = Path("manager/src/main/java/frb/axeron/manager/ui/theme/Color.kt")
+          s = color_kt.read_text(encoding="utf-8")
+          s = s.replace('val basePrimaryDefault = Color(0xFFFFB487)', 'val basePrimaryDefault = Color(0xFF4D8DFF)')
+          s = s.replace('Color(0xFF101010).blend(black, 0.08f)', 'Color(0xFF0A1020).blend(black, 0.04f)')
+          s = s.replace('Color(0xFFFFFFFF).blend(white, 0.02f)', 'Color(0xFFF4F7FF).blend(white, 0.02f)')
+          color_kt.write_text(s, encoding="utf-8")
+
+          # Match Android system bars and legacy views to the same navy palette.
+          for theme_file in [
+              Path("manager/src/main/res/values/themes.xml"),
+              Path("manager/src/main/res/values-night/themes.xml"),
+          ]:
+              s = theme_file.read_text(encoding="utf-8")
+              s = s.replace('<item name="colorPrimary">@color/orange</item>', '<item name="colorPrimary">#4D8DFF</item>')
+              if '<item name="android:statusBarColor">' not in s:
+                  s = s.replace('</style>', '<item name="android:statusBarColor">#080F1D</item>\\n        <item name="android:navigationBarColor">#080F1D</item>\\n        <item name="android:windowLightStatusBar">false</item>\\n        <item name="android:windowLightNavigationBar">false</item>\\n    </style>', 1)
+              theme_file.write_text(s, encoding="utf-8")
+
+          # Completely redesign the About bottom sheet while keeping the original navigation actions.
+          settings_ui = Path("manager/src/main/java/frb/axeron/manager/ui/screen/Settings.kt")
+          s = settings_ui.read_text(encoding="utf-8")
+          start = s.index("fun DeveloperInfo(")
+          end = s.index("\\nprivate fun isShizukuAppInstalled", start)
+          about_ui = """fun DeveloperInfo(
+              showDialog: Boolean,
+              onDismissRequest: () -> Unit
+          ) {
+              val uriHandler = LocalUriHandler.current
+              val githubUrl = "https://github.com/rizal070901-dot/DJALIMEN-MANAGER"
+              val telegramUrl = "https://t.me/fahrezone"
+              val supportUrl = "https://github.com/rizal070901-dot/DJALIMEN-MANAGER"
+
+              if (showDialog) {
+                  ModalBottomSheet(
+                      sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+                      containerColor = Color(0xFF080F1D),
+                      onDismissRequest = onDismissRequest
+                  ) {
+                      Column(
+                          modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 28.dp),
+                          horizontalAlignment = Alignment.CenterHorizontally,
+                          verticalArrangement = Arrangement.spacedBy(14.dp)
+                      ) {
+                          Surface(
+                              shape = CircleShape,
+                              color = Color(0xFF14294B),
+                              border = BorderStroke(1.dp, Color(0xFF4D8DFF).copy(alpha = 0.55f)),
+                              modifier = Modifier.size(104.dp)
+                          ) {
+                              Box(contentAlignment = Alignment.Center) {
+                                  Text("DJ", color = Color(0xFF8FC4FF), fontSize = 38.sp, fontWeight = FontWeight.Black)
+                              }
+                          }
+
+                          Text(
+                              text = "DJALIMEN MANAGER",
+                              fontSize = 23.sp,
+                              fontWeight = FontWeight.ExtraBold,
+                              color = Color(0xFFF4F7FF),
+                              textAlign = TextAlign.Center
+                          )
+                          Text(
+                              text = "ANDROID MODULE CONTROL CENTER",
+                              fontSize = 11.sp,
+                              fontWeight = FontWeight.Bold,
+                              color = Color(0xFF71A9FF),
+                              textAlign = TextAlign.Center
+                          )
+
+                          Surface(
+                              color = Color(0xFF111E36),
+                              shape = AxCardShape,
+                              border = BorderStroke(1.dp, Color(0xFF29436A)),
+                              modifier = Modifier.fillMaxWidth()
+                          ) {
+                              Column(
+                                  modifier = Modifier.padding(16.dp),
+                                  horizontalAlignment = Alignment.CenterHorizontally,
+                                  verticalArrangement = Arrangement.spacedBy(6.dp)
+                              ) {
+                                  Text("DJALIMEN CHANNEL", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                  Text("Pengembang • Pemelihara", fontSize = 13.sp, color = Color(0xFF8FC4FF))
+                                  Text(
+                                      "Built for performance. Powered by the community.",
+                                      fontSize = 13.sp,
+                                      color = Color(0xFFBAC9DF),
+                                      textAlign = TextAlign.Center
+                                  )
+                              }
+                          }
+
+                          Text(
+                              "OPEN-SOURCE FOUNDATION  •  AXMANAGER BY FAHREZRB",
+                              fontSize = 10.sp,
+                              fontWeight = FontWeight.SemiBold,
+                              color = Color(0xFF8294AF),
+                              textAlign = TextAlign.Center
+                          )
+
+                          Row(
+                              modifier = Modifier.fillMaxWidth(),
+                              horizontalArrangement = Arrangement.spacedBy(10.dp)
+                          ) {
+                              FilledTonalButton(
+                                  onClick = { uriHandler.openUri(githubUrl) },
+                                  modifier = Modifier.weight(1f).height(48.dp)
+                              ) {
+                                  Icon(painter = painterResource(id = R.drawable.ic_github), contentDescription = "GitHub", modifier = Modifier.size(19.dp))
+                                  Spacer(Modifier.width(7.dp))
+                                  Text("GitHub")
+                              }
+                              FilledTonalButton(
+                                  onClick = { uriHandler.openUri(telegramUrl) },
+                                  modifier = Modifier.weight(1f).height(48.dp)
+                              ) {
+                                  Icon(painter = painterResource(id = R.drawable.ic_telegram), contentDescription = "Telegram", modifier = Modifier.size(19.dp))
+                                  Spacer(Modifier.width(7.dp))
+                                  Text("Telegram")
+                              }
+                          }
+
+                          FilledTonalButton(
+                              onClick = { uriHandler.openUri(supportUrl) },
+                              modifier = Modifier.fillMaxWidth().height(50.dp)
+                          ) {
+                              Icon(Icons.Filled.Coffee, contentDescription = null, modifier = Modifier.size(19.dp))
+                              Spacer(Modifier.width(9.dp))
+                              Text("DUKUNG DJALIMEN")
+                          }
+                      }
+                  }
+              }
+          }
+          """
+          s = s[:start] + about_ui + s[end:]
+          settings_ui.write_text(s, encoding="utf-8")
+          print("Applied complete DJALIMEN Midnight Blue theme and redesigned About sheet.")
+
+          
           # Replace AxManager launcher artwork with a DJALIMEN blue-metallic monogram.
           # Vector assets are generated at build time so all densities use the same crisp icon.
           icon_dir = res / "drawable"

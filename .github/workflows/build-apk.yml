@@ -147,12 +147,20 @@ jobs:
           marquee_import = "import androidx.compose.foundation.basicMarquee"
           if marquee_import not in s:
               s = s.replace("import androidx.compose.foundation.background", "import androidx.compose.foundation.background\n" + marquee_import, 1)
-          old_version_label = """                            Text(
-                                text = "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = FontWeight.Bold,
+          # Match the version Text by its stable BuildConfig expression; upstream indentation may vary.
+          version_pattern = r'Text\(\s*text = "v\$\{BuildConfig\.VERSION_NAME\} \(\$\{BuildConfig\.VERSION_CODE\}\)",.*?\n\s*\)'
+          new_welcome_label = """Text(
+                                text = "SELAMAT DATANG DI APLIKASI (DJM) NIKMATI FITURNYA DAN GUNAKAN SECARA MAKSIMAL",
+                                modifier = Modifier.fillMaxWidth().basicMarquee(iterations = Int.MAX_VALUE),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFF65F0C1),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 1,
                             )"""
+          s, replacements = re.subn(version_pattern, new_welcome_label, s, count=1, flags=re.DOTALL)
+          if replacements != 1:
+              raise SystemExit("Home version label target not found; refusing to alter unrelated UI.")
           new_welcome_label = """                            Text(
                                 text = "SELAMAT DATANG DI APLIKASI (DJM) NIKMATI FITURNYA DAN GUNAKAN SECARA MAKSIMAL",
                                 modifier = Modifier.fillMaxWidth().basicMarquee(iterations = Int.MAX_VALUE),

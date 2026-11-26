@@ -288,6 +288,63 @@ jobs:
                 )
             }"""
           s = s[:action_start] + new_youtube_action + s[action_end:]
+          # Refine the Home activation/status card with a premium navy treatment.
+          status_old = """            isUpdating -> MaterialTheme.colorScheme.primaryContainer
+              isNeedExtraStep -> MaterialTheme.colorScheme.errorContainer
+              isRunning -> MaterialTheme.colorScheme.primaryContainer
+              else -> MaterialTheme.colorScheme.errorContainer"""
+          status_new = """            isUpdating -> MaterialTheme.colorScheme.primaryContainer
+              isNeedExtraStep -> Color(0xFF302719)
+              isRunning -> Color(0xFF142B49)
+              else -> Color(0xFF101F38)"""
+          if status_old not in s:
+              raise SystemExit("Home activation status color block not found")
+          s = s.replace(status_old, status_new, 1)
+          card_old = """.height(IntrinsicSize.Min)
+          ) {
+              Box(
+                  modifier = Modifier
+                      .fillMaxWidth()
+                      // The activation screen"""
+          card_new = """.height(IntrinsicSize.Min)
+                      .border(1.dp, Color(0xFF365987), shape)
+          ) {
+              Box(
+                  modifier = Modifier
+                      .fillMaxWidth()
+                      // The activation screen"""
+          if card_old not in s:
+              raise SystemExit("Home activation card shape anchor not found")
+          s = s.replace(card_old, card_new, 1)
+          gradient_anchor = """              val fadeColor = MaterialTheme.colorScheme.surfaceVariant"""
+          gradient_insert = """              if (!isRunning && !isUpdating) {
+                  Box(
+                      modifier = Modifier
+                          .matchParentSize()
+                          .background(
+                              Brush.linearGradient(
+                                  listOf(Color(0xFF19365B), Color(0xFF101F38), Color(0xFF0B1426))
+                              )
+                          )
+                  )
+              }
+              val fadeColor = MaterialTheme.colorScheme.surfaceVariant"""
+          if gradient_anchor not in s:
+              raise SystemExit("Home activation gradient insertion point not found")
+          s = s.replace(gradient_anchor, gradient_insert, 1)
+          badge_old = """                                else -> StatusBadge(
+                                      text = stringResource(R.string.home_badge_stopped),
+                                      container = colors.error,
+                                      content = colors.onError
+                                  )"""
+          badge_new = """                                else -> StatusBadge(
+                                      text = "PERLU AKTIVASI",
+                                      container = Color(0xFF244B78),
+                                      content = Color(0xFFD7E9FF)
+                                  )"""
+          if badge_old not in s:
+              raise SystemExit("Home stopped activation badge not found")
+          s = s.replace(badge_old, badge_new, 1)
           home_ui.write_text(s, encoding="utf-8")
 
           # DJALIMEN visual identity: vivid blue accent; all resource identifiers remain unchanged.

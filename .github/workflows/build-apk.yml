@@ -161,17 +161,6 @@ jobs:
           s, replacements = re.subn(version_pattern, new_welcome_label, s, count=1, flags=re.DOTALL)
           if replacements != 1:
               raise SystemExit("Home version label target not found; refusing to alter unrelated UI.")
-          new_welcome_label = """                            Text(
-                                text = "SELAMAT DATANG DI APLIKASI (DJM) NIKMATI FITURNYA DAN GUNAKAN SECARA MAKSIMAL",
-                                modifier = Modifier.fillMaxWidth().basicMarquee(iterations = Int.MAX_VALUE),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFF65F0C1),
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                            )"""
-          if old_version_label not in s:
-              raise SystemExit("Home version label target not found; refusing to alter unrelated UI.")
-          s = s.replace(old_version_label, new_welcome_label, 1)
           s = s.replace('https://github.com/fahrez182/AxManager/issues', 'https://github.com/rizal070901-dot/DJALIMEN-MANAGER/issues')
           s = s.replace('https://github.com/fahrez182/AxManager', 'https://github.com/rizal070901-dot/DJALIMEN-MANAGER')
           s = s.replace('https://fahrez182.github.io/AxManager', 'https://github.com/rizal070901-dot/DJALIMEN-MANAGER#readme')

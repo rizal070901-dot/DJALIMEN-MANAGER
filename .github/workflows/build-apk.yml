@@ -148,52 +148,117 @@ jobs:
           # Give Home a distinct DJALIMEN dashboard identity without touching feature logic.
           home_anchor = """            // Status and the plugin/privilege counts read as one card: square inner edges,"""
           home_hero = """            Surface(
-                color = Color(0xFF0D1B33),
+                color = Color.Transparent,
                 shape = AxCardShape,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, Color(0xFF29466F), AxCardShape)
             ) {
-                Box(
+                Column(
                     modifier = Modifier
+                        .clip(AxCardShape)
                         .background(
-                            Brush.horizontalGradient(
-                                listOf(Color(0xFF10294D), Color(0xFF14203A), Color(0xFF0D1B33))
+                            Brush.linearGradient(
+                                listOf(
+                                    Color(0xFF17365F),
+                                    Color(0xFF101F39),
+                                    Color(0xFF0A1427)
+                                )
                             )
                         )
-                        .padding(horizontal = 18.dp, vertical = 18.dp)
+                        .padding(horizontal = 20.dp, vertical = 19.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            text = "DJALIMEN CONTROL CENTER",
-                            color = Color(0xFF8FC4FF),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = 1.8.sp
-                        )
-                        Text(
-                            text = "Kelola Performa\\nAndroid Anda",
-                            color = Color(0xFFF4F7FF),
-                            fontSize = 25.sp,
-                            lineHeight = 29.sp,
-                            fontWeight = FontWeight.ExtraBold
-                        )
-                        Text(
-                            text = "Modul • Layanan • Kontrol perangkat",
-                            color = Color(0xFFB7C9E5),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium
-                        )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            Text(
+                                text = "DJALIMEN",
+                                color = Color(0xFF9CCBFF),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                letterSpacing = 2.2.sp
+                            )
+                            Text(
+                                text = "ANDROID PERFORMANCE SUITE",
+                                color = Color(0xFF8299BA),
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                letterSpacing = 1.1.sp
+                            )
+                        }
                         Surface(
-                            color = Color(0xFF1C3B66),
+                            color = Color(0xFF1B3D68),
                             shape = CircleShape
                         ) {
                             Text(
-                                text = "DJM  /  BY DJALIMEN",
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                color = Color(0xFFB9D9FF),
+                                text = "DJM",
+                                modifier = Modifier.padding(horizontal = 13.dp, vertical = 7.dp),
+                                color = Color(0xFFD8E9FF),
                                 fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.sp
+                                fontWeight = FontWeight.ExtraBold,
+                                letterSpacing = 1.4.sp
                             )
+                        }
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .width(3.dp)
+                                .height(58.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF69A9FF))
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                text = "Kontrol lebih cerdas.",
+                                color = Color(0xFFF5F8FF),
+                                fontSize = 22.sp,
+                                lineHeight = 27.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Performa lebih optimal.",
+                                color = Color(0xFFD2E2F8),
+                                fontSize = 19.sp,
+                                lineHeight = 24.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = "Kelola modul, layanan, dan perangkat Android dalam satu pusat kendali.",
+                        color = Color(0xFFAFC2DE),
+                        fontSize = 12.sp,
+                        lineHeight = 18.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("MODULES", "SERVICES", "DEVICE").forEach { label ->
+                            Surface(
+                                color = Color(0xFF172D4C),
+                                shape = CircleShape
+                            ) {
+                                Text(
+                                    text = label,
+                                    modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
+                                    color = Color(0xFF9FC7F5),
+                                    fontSize = 8.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 0.8.sp
+                                )
+                            }
                         }
                     }
                 }

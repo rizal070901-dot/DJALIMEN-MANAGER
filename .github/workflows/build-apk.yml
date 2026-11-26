@@ -304,7 +304,7 @@ jobs:
               'text = "PERLU AKTIVASI",\n                                    container = Color(0xFF244B78),\n                                    content = Color(0xFFD7E9FF)',
               1
           )
-                    home_ui.write_text(s, encoding="utf-8")
+          home_ui.write_text(s, encoding="utf-8")
 
           # DJALIMEN visual identity: vivid blue accent; all resource identifiers remain unchanged.
           colors = res / "values" / "colors.xml"

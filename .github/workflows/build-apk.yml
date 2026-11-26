@@ -156,7 +156,7 @@ jobs:
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            IconButton(onClick = { uriHandler.openUri(telegramUrl) }) {
+            IconButton(onClick = { uriHandler.openUri(youtubeUrl) }) {
                 Icon(
                     painter = painterResource(R.drawable.ic_telegram),
                     contentDescription = "Report to telegram",

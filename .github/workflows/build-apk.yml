@@ -234,7 +234,47 @@ jobs:
               'text = "PERLU AKTIVASI",\n                                    container = Color(0xFF244B78),\n                                    content = Color(0xFFD7E9FF)',
               1
           )
+          # Replace the stopped-state X watermark with the DJALIMEN brand mark.
+          # This is presentation-only; activation state and click behavior stay unchanged.
+          if 'else -> rememberVectorPainter(Icons.Outlined.Cancel)' not in s:
+              raise SystemExit("Activation watermark anchor missing")
+          s = s.replace(
+              'else -> rememberVectorPainter(Icons.Outlined.Cancel)',
+              'else -> painterResource(R.drawable.ic_djalimen_mark)',
+              1
+          )
           home_ui.write_text(s, encoding="utf-8")
+
+          # Brand the plugin manager's visible console output without changing internal process/env names.
+          igniter = Path("reignite/src/main/java/frb/axeron/reignite/Igniter.kt")
+          igniter_text = igniter.read_text(encoding="utf-8")
+          if 'AXERON Plugin Manager ($VERSION)' not in igniter_text:
+              raise SystemExit("Plugin manager log branding anchor missing")
+          igniter_text = igniter_text.replace(
+              'AXERON Plugin Manager ($VERSION)',
+              'DJALIMEN Plugin Manager ($VERSION)'
+          )
+          igniter.write_text(igniter_text, encoding="utf-8")
+
+          # A clean, original DJALIMEN monogram for the activation-card watermark.
+          mark = res / "drawable" / "ic_djalimen_mark.xml"
+          mark.parent.mkdir(parents=True, exist_ok=True)
+          mark.write_text("""<?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="180dp" android:height="180dp"
+              android:viewportWidth="180" android:viewportHeight="180">
+              <path android:fillColor="#FF65F0C1"
+                  android:pathData="M90,12 C133,12 168,47 168,90 C168,133 133,168 90,168 C47,168 12,133 12,90 C12,47 47,12 90,12 Z M90,28 C56,28 28,56 28,90 C28,124 56,152 90,152 C124,152 152,124 152,90 C152,56 124,28 90,28 Z"
+                  android:fillType="evenOdd"/>
+              <path android:fillColor="#FF65F0C1"
+                  android:pathData="M65,49 L91,49 C117,49 134,65 134,90 C134,115 117,131 91,131 L65,131 Z M83,66 L83,114 L91,114 C106,114 116,105 116,90 C116,75 106,66 91,66 Z"
+                  android:fillType="evenOdd"/>
+              <path android:fillColor="#FF0A1920"
+                  android:pathData="M92,75 L105,75 L105,86 L116,86 L116,99 L105,99 L105,110 L92,110 Z"/>
+          </vector>
+          """, encoding="utf-8")
+          print("Rebranded plugin console output and activation watermark to DJALIMEN.")
+
 
           # Present legacy environment identifiers with DJALIMEN labels only.
           # The real environment keys and values remain untouched for service compatibility.

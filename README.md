@@ -28,9 +28,9 @@ Identitas DJALIMEN digunakan untuk nama aplikasi, tampilan, halaman Tentang/Duku
 
 ## Asal-usul dan atribusi
 
-DJALIMEN MANAGER merupakan proyek turunan yang menggunakan dan memodifikasi komponen open-source, termasuk fondasi **[AxManager](https://github.com/fahrez182/AxManager)** oleh FahrezRB. DJALIMEN bertanggung jawab atas pengembangan, pemeliharaan, dan perubahan yang dibuat khusus untuk distribusi DJALIMEN.
+DJALIMEN MANAGER merupakan proyek independen yang menggunakan dan memodifikasi komponen perangkat lunak open-source. DJALIMEN bertanggung jawab atas pengembangan, pemeliharaan, serta perubahan yang dibuat khusus untuk distribusi DJALIMEN.
 
-Atribusi, pemberitahuan hak cipta, dan ketentuan lisensi dari proyek upstream serta komponen pihak ketiga tetap dipertahankan. DJALIMEN MANAGER bukan rilis resmi atau produk yang didukung oleh pengembang upstream.
+Pemberitahuan hak cipta, atribusi, dan ketentuan lisensi dari seluruh komponen upstream maupun pihak ketiga tetap dipertahankan sesuai lisensi masing-masing. DJALIMEN MANAGER bukan rilis resmi atau produk yang didukung oleh pengembang komponen upstream.
 
 - [LICENSE](LICENSE) — teks lisensi dan pemberitahuan lisensi.
 - [NOTICE](NOTICE) — atribusi upstream dan komponen pihak ketiga.

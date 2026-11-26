@@ -147,124 +147,54 @@ jobs:
           s = s.replace('https://fahrez182.github.io/AxManager', 'https://github.com/rizal070901-dot/DJALIMEN-MANAGER#readme')
           # Give Home a distinct DJALIMEN dashboard identity without touching feature logic.
           home_anchor = """            // Status and the plugin/privilege counts read as one card: square inner edges,"""
-          home_hero = """            Surface(
-                color = Color.Transparent,
+          home_hero = """            // DJALIMEN cyber command dashboard — intentionally distinct from the upstream layout.
+            Surface(
+                color = Color(0xFF080F1D),
                 shape = AxCardShape,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.dp, Color(0xFF29466F), AxCardShape)
+                modifier = Modifier.fillMaxWidth().border(1.dp, Color(0xFF245B55), AxCardShape)
             ) {
                 Column(
                     modifier = Modifier
                         .clip(AxCardShape)
-                        .background(
-                            Brush.linearGradient(
-                                listOf(
-                                    Color(0xFF17365F),
-                                    Color(0xFF101F39),
-                                    Color(0xFF0A1427)
-                                )
-                            )
-                        )
-                        .padding(horizontal = 20.dp, vertical = 19.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                        .background(Brush.verticalGradient(listOf(Color(0xFF102B2A), Color(0xFF0A1920), Color(0xFF080F1D))))
+                        .padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(13.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(3.dp)
-                        ) {
-                            Text(
-                                text = "DJALIMEN",
-                                color = Color(0xFF9CCBFF),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                letterSpacing = 2.2.sp
-                            )
-                            Text(
-                                text = "ANDROID PERFORMANCE SUITE",
-                                color = Color(0xFF8299BA),
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                letterSpacing = 1.1.sp
-                            )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text("DJALIMEN // CORE", color = Color(0xFF65F0C1), fontFamily = FontFamily.Monospace, fontSize = 12.sp, fontWeight = FontWeight.Black, letterSpacing = 1.5.sp)
+                            Text("ANDROID CONTROL INTERFACE", color = Color(0xFF8BB8AE), fontFamily = FontFamily.Monospace, fontSize = 9.sp, letterSpacing = 1.sp)
                         }
                         Surface(
-                            color = Color(0xFF1B3D68),
+                            color = if (isRunning) Color(0xFF123D35) else Color(0xFF332A19),
                             shape = CircleShape
                         ) {
                             Text(
-                                text = "DJM",
-                                modifier = Modifier.padding(horizontal = 13.dp, vertical = 7.dp),
-                                color = Color(0xFFD8E9FF),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                letterSpacing = 1.4.sp
-                            )
-                        }
-                    }
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .width(3.dp)
-                                .height(58.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFF69A9FF))
-                        )
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(
-                                text = "Kontrol lebih cerdas.",
-                                color = Color(0xFFF5F8FF),
-                                fontSize = 22.sp,
-                                lineHeight = 27.sp,
+                                if (isRunning) "● ONLINE" else "● STANDBY",
+                                modifier = Modifier.padding(horizontal = 11.dp, vertical = 7.dp),
+                                color = if (isRunning) Color(0xFF6FFFC6) else Color(0xFFFFD27A),
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold
                             )
-                            Text(
-                                text = "Performa lebih optimal.",
-                                color = Color(0xFFD2E2F8),
-                                fontSize = 19.sp,
-                                lineHeight = 24.sp,
-                                fontWeight = FontWeight.Medium
-                            )
                         }
                     }
-
-                    Text(
-                        text = "Kelola modul, layanan, dan perangkat Android dalam satu pusat kendali.",
-                        color = Color(0xFFAFC2DE),
-                        fontSize = 12.sp,
-                        lineHeight = 18.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf("MODULES", "SERVICES", "DEVICE").forEach { label ->
-                            Surface(
-                                color = Color(0xFF172D4C),
-                                shape = CircleShape
-                            ) {
-                                Text(
-                                    text = label,
-                                    modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
-                                    color = Color(0xFF9FC7F5),
-                                    fontSize = 8.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 0.8.sp
-                                )
+                    HorizontalDivider(color = Color(0xFF245B55).copy(alpha = 0.8f))
+                    Text("root@djalimen:~$ system_control", color = Color(0xFF65F0C1), fontFamily = FontFamily.Monospace, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text("PERANGKAT DALAM KENDALI.", color = Color(0xFFE7FFF7), fontSize = 22.sp, lineHeight = 27.sp, fontWeight = FontWeight.ExtraBold)
+                    Text("Satu pusat kendali untuk modul, akses sistem, dan performa Android.", color = Color(0xFFA5C9BF), fontSize = 12.sp, lineHeight = 18.sp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                        listOf("MODULE_ENGINE", "ROOT_ACCESS", "DEVICE_MONITOR").forEach { item ->
+                            Surface(color = Color(0xFF102E2B), shape = CircleShape) {
+                                Text(item, modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp), color = Color(0xFF79DDBD), fontFamily = FontFamily.Monospace, fontSize = 8.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
+                    Text("BUILD // DJM-${BuildConfig.VERSION_NAME}", color = Color(0xFF638C83), fontFamily = FontFamily.Monospace, fontSize = 9.sp)
                 }
             }
 
-            // Status and the plugin/privilege counts read as one card: square inner edges,"""
+            // Status and the plugin/privilege counts read as one card: square inner edges,""";
           if home_anchor not in s:
               raise SystemExit("Home dashboard insertion anchor missing")
           s = s.replace(home_anchor, home_hero, 1)
@@ -305,6 +235,18 @@ jobs:
               1
           )
           home_ui.write_text(s, encoding="utf-8")
+
+          # Present legacy environment identifiers with DJALIMEN labels only.
+          # The real environment keys and values remain untouched for service compatibility.
+          editor_ui = Path("manager/src/main/java/frb/axeron/manager/ui/screen/SettingsEditor.kt")
+          editor_text = editor_ui.read_text(encoding="utf-8")
+          old_display = "highlightMatches(entry.keyDisplay, query, matchStyle)"
+          new_display = 'highlightMatches(entry.keyDisplay.replace("AXERON", "DJALIMEN"), query, matchStyle)'
+          if old_display not in editor_text:
+              raise SystemExit("Settings editor display-key anchor missing")
+          editor_text = editor_text.replace(old_display, new_display, 1)
+          editor_ui.write_text(editor_text, encoding="utf-8")
+          print("Applied DJALIMEN display labels to legacy environment keys; backend identifiers preserved.")
 
           # DJALIMEN visual identity: vivid blue accent; all resource identifiers remain unchanged.
           colors = res / "values" / "colors.xml"

@@ -617,6 +617,18 @@ jobs:
                       path.write_text(updated, encoding="utf-8")
                       migrated.append(str(path))
 
+          # AIDL requires the physical directory to match the declared package.
+          # Move package directories after rewriting the package declarations.
+          aidl_root = Path("api/aidl/src/main/aidl")
+          for old, new in package_moves.items():
+              old_dir = aidl_root / Path(*old.split("."))
+              new_dir = aidl_root / Path(*new.split("."))
+              if old_dir.exists():
+                  new_dir.parent.mkdir(parents=True, exist_ok=True)
+                  if new_dir.exists():
+                      raise SystemExit("AIDL target package directory already exists: " + str(new_dir))
+                  old_dir.rename(new_dir)
+
           # Gradle namespaces must match the newly migrated source packages.
           server_gradle = Path("server/build.gradle.kts")
           server_text = server_gradle.read_text(encoding="utf-8")

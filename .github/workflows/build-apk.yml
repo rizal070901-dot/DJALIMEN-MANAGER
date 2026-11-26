@@ -247,12 +247,21 @@ jobs:
                           }
 
                           Text(
-                              "OPEN-SOURCE FOUNDATION  •  AXMANAGER BY FAHREZRB",
-                              fontSize = 10.sp,
-                              fontWeight = FontWeight.SemiBold,
-                              color = Color(0xFF8294AF),
-                              textAlign = TextAlign.Center
-                          )
+                          Surface(
+                              color = Color(0xFF14294B),
+                              shape = RoundedCornerShape(50),
+                              border = BorderStroke(1.dp, Color(0xFF4D8DFF).copy(alpha = 0.35f))
+                          ) {
+                              Text(
+                                  "DJM BY DJALIMEN",
+                                  modifier = Modifier.padding(horizontal = 18.dp, vertical = 9.dp),
+                                  fontSize = 12.sp,
+                                  fontWeight = FontWeight.ExtraBold,
+                                  letterSpacing = 1.2.sp,
+                                  color = Color(0xFF8FC4FF),
+                                  textAlign = TextAlign.Center
+                              )
+                          }
 
                           Row(
                               modifier = Modifier.fillMaxWidth(),

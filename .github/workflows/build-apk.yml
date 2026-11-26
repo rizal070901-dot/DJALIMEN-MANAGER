@@ -170,7 +170,7 @@ jobs:
                             letterSpacing = 1.8.sp
                         )
                         Text(
-                            text = "Kelola Performa\nAndroid Anda",
+                            text = "Kelola Performa\\nAndroid Anda",
                             color = Color(0xFFF4F7FF),
                             fontSize = 25.sp,
                             lineHeight = 29.sp,

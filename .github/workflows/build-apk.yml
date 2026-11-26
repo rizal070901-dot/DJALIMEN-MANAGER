@@ -103,33 +103,11 @@ jobs:
           s = s.replace(credit, '                Text(\n                    text = "Open-source foundation: AxManager by FahrezRB",\n                    fontSize = 12.sp,\n                    color = MaterialTheme.colorScheme.onSurfaceVariant\n                )\n\n' + credit, 1)
           # Keep the original contributor portrait and show explicit upstream credit below the DJALIMEN title.
 
-          # Rebrand the support action using the exact upstream Kotlin expression.
+          # Rebrand the existing support label only. Keep the upstream button layout and click behavior intact.
           old_support = 'Text(stringResource(R.string.support_or_donate))'
           if old_support not in s:
               raise SystemExit("Upstream support button expression not found")
           s = s.replace(old_support, 'Text("Dukung DJALIMEN di GitHub")', 1)
-
-          # Add the license button immediately after the existing support button.
-          support_anchor = '''                    Text("Dukung DJALIMEN di GitHub")
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))'''
-          license_button = '''                    Text("Dukung DJALIMEN di GitHub")
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                FilledTonalButton(
-                    onClick = { uriHandler.openUri("https://github.com/rizal070901-dot/DJALIMEN-MANAGER/blob/main/LICENSE") },
-                    modifier = Modifier.height(38.dp)
-                ) {
-                    Text("Lisensi & Atribusi")
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))'''
-          if support_anchor not in s:
-              raise SystemExit("Could not locate support button closing block")
-          s = s.replace(support_anchor, license_button, 1)
           settings_ui.write_text(s, encoding="utf-8")
 
           home_ui = Path("manager/src/main/java/frb/axeron/manager/ui/screen/Home.kt")

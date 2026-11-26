@@ -28,6 +28,19 @@ Identitas DJALIMEN diterapkan pada nama aplikasi, teks UI, halaman Tentang/Dukun
 
 ## Lisensi dan atribusi
 
-Fondasi kode berasal dari [AxManager](https://github.com/fahrez182/AxManager) oleh FahrezRB. Proyek ini mempertahankan Apache License 2.0, pemberitahuan hak cipta, dan NOTICE upstream. Komponen pihak ketiga tetap mengikuti lisensinya masing-masing. Lihat [LICENSE](LICENSE) dan [NOTICE](NOTICE).
+# DJALIMEN MANAGER
 
+**Copyright © 2026 DJALIMEN.**
+
+DJALIMEN MANAGER is an independently maintained and modified software project.
+
+This project incorporates and modifies open-source components originally developed by their respective authors, including AxManager by FahrezRB.
+
+All upstream copyright notices, attribution requirements, and applicable open-source licenses are retained in accordance with their respective license terms.
+
+DJALIMEN is responsible for its own modifications, development, maintenance, and branding.
+
+**License:** Apache License 2.0 (including applicable upstream components).
+
+See [LICENSE](https://github.com/rizal070901-dot/DJALIMEN-MANAGER/blob/main/LICENSE) and [NOTICE](https://github.com/rizal070901-dot/DJALIMEN-MANAGER/blob/main/NOTICE).
 DJALIMEN MANAGER merupakan distribusi komunitas dan bukan proyek resmi dari pengembang upstream.

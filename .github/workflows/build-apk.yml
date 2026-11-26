@@ -95,6 +95,65 @@ jobs:
           if credit not in s:
               raise SystemExit("About attribution insertion point missing")
           s = s.replace(credit, '                Text(\n                    text = "Open-source foundation: AxManager by FahrezRB",\n                    fontSize = 12.sp,\n                    color = MaterialTheme.colorScheme.onSurfaceVariant\n                )\n\n' + credit, 1)
+          # Replace the upstream developer portrait with a simple DJALIMEN monogram.
+          old_image = '''                    Image(
+                        painter = painterResource(id = R.drawable.fahrez182),
+                        contentDescription = "Developer Profile Picture",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                            .background(Color(0xFF303030))
+                    )'''
+          new_image = '''                    Text(
+                        text = "DJ",
+                        color = Color.White,
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold
+                    )'''
+          if old_image not in s:
+              raise SystemExit("About profile image patch target missing")
+          s = s.replace(old_image, new_image, 1)
+
+          # Turn the support action into a clearly labeled project-support link, then expose the license.
+          old_support = '''                    Icon(
+                        imageVector = Icons.Filled.Coffee,
+                        contentDescription = "Support / Donate",
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.support_or_donate))
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))'''
+          new_support = '''                    Icon(
+                        painter = painterResource(id = R.drawable.ic_github),
+                        contentDescription = "Support DJALIMEN on GitHub",
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text("Dukung DJALIMEN di GitHub")
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                FilledTonalButton(
+                    onClick = { uriHandler.openUri("https://github.com/rizal070901-dot/DJALIMEN-MANAGER/blob/main/LICENSE") },
+                    modifier = Modifier.height(38.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Info,
+                        contentDescription = "License and attribution",
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text("Lisensi & Atribusi")
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))'''
+          if old_support not in s:
+              raise SystemExit("About support/license insertion point missing")
+          s = s.replace(old_support, new_support, 1)
           settings_ui.write_text(s, encoding="utf-8")
 
           home_ui = Path("manager/src/main/java/frb/axeron/manager/ui/screen/Home.kt")

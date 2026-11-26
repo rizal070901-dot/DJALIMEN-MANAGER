@@ -101,26 +101,7 @@ jobs:
           if credit not in s:
               raise SystemExit("About attribution insertion point missing")
           s = s.replace(credit, '                Text(\n                    text = "Open-source foundation: AxManager by FahrezRB",\n                    fontSize = 12.sp,\n                    color = MaterialTheme.colorScheme.onSurfaceVariant\n                )\n\n' + credit, 1)
-          # Replace the upstream developer portrait with a simple DJALIMEN monogram.
-          old_image = '''                    Image(
-                        painter = painterResource(id = R.drawable.fahrez182),
-                        contentDescription = "Developer Profile Picture",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(CircleShape)
-                            .background(Color(0xFF303030))
-                    )'''
-          new_image = '''                    Text(
-                        text = "DJ",
-                        color = Color.White,
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold
-                    )'''
-          if old_image not in s:
-              raise SystemExit("About profile image patch target missing")
-          s = s.replace(old_image, new_image, 1)
-          s = s.replace('.background(Color(0xFF303030))', '.background(Color(0xFF5577FF))', 1)
+          # Keep the original contributor portrait and show explicit upstream credit below the DJALIMEN title.
 
           # Turn the support action into a clearly labeled project-support link, then expose the license.
           old_support = '''                    Icon(

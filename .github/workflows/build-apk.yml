@@ -262,6 +262,16 @@ jobs:
               'else -> painterResource(R.drawable.ic_djalimen_mark)',
               1
           )
+          # The running state uses the original Axeron logo as a separate resource.
+          # Replace that branch too; otherwise the old logo remains visible while active.
+          running_mark = 'isRunning -> painterResource(R.drawable.ic_axeron)'
+          if running_mark not in s:
+              raise SystemExit("Running-state Axeron watermark target missing")
+          s = s.replace(
+              running_mark,
+              'isRunning -> painterResource(R.drawable.ic_djalimen_mark)',
+              1
+          )
           home_ui.write_text(s, encoding="utf-8")
 
           # Brand the plugin manager's visible console output without changing internal process/env names.

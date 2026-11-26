@@ -149,20 +149,14 @@ jobs:
           s = s.replace('val telegramUrl = "https://t.me/axeron_manager"', 'val youtubeUrl = "https://youtube.com/@djalimenchannel?si=-E0j7Hh9ryEFMljD"')
           s = s.replace('title = stringResource(R.string.report_issue),', 'title = "YouTube DJALIMEN",')
           s = s.replace('message = "\${stringResource(R.string.report_issue_msg)} \${stringResource(R.string.report_issue_msg2)}",', 'message = "Kunjungi kanal YouTube resmi DJALIMEN.",')
-          old_issue_actions = """            IconButton(onClick = { uriHandler.openUri(githubIssueUrl) }) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_github),
-                    contentDescription = "Report to github",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            IconButton(onClick = { uriHandler.openUri(telegramUrl) }) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_telegram),
-                    contentDescription = "Report to telegram",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }"""
+          # Locate the report actions by their stable first callback, then replace the
+          # complete trailing-actions lambda. This avoids brittle whitespace/full-block matching.
+          action_start = s.find('            IconButton(onClick = { uriHandler.openUri(githubIssueUrl) })')
+          if action_start < 0:
+              raise SystemExit("Report issue action anchor not found in Home.kt")
+          action_end = s.find("\\n        }\\n    }\\n}", action_start)
+          if action_end < 0:
+              raise SystemExit("Could not locate end of report issue actions")
           new_youtube_action = """            IconButton(onClick = { uriHandler.openUri(youtubeUrl) }) {
                 Icon(
                     painter = painterResource(R.drawable.ic_youtube),
@@ -170,9 +164,7 @@ jobs:
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }"""
-          if old_issue_actions not in s:
-              raise SystemExit("Old report issue button block not found")
-          s = s.replace(old_issue_actions, new_youtube_action, 1)
+          s = s[:action_start] + new_youtube_action + s[action_end:]
           home_ui.write_text(s, encoding="utf-8")
 
           # DJALIMEN visual identity: vivid blue accent; all resource identifiers remain unchanged.

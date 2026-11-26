@@ -49,25 +49,41 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
-          strings = Path("manager/src/main/res/values/strings.xml")
-          text = strings.read_text()
-          old = '<string name="app_name">AxManager</string>'
-          if old not in text:
-              raise SystemExit("Expected app_name resource was not found; refusing an unsafe partial rebrand")
-          strings.write_text(text.replace(old, '<string name="app_name">DJALIMEN MANAGER</string>', 1))
+          # Rebrand user-visible Android resource text, not package names or API identifiers.
+          res = Path("manager/src/main/res")
+          changed = []
+          for p in res.rglob("*.xml"):
+              try:
+                  s = p.read_text(encoding="utf-8")
+              except UnicodeDecodeError:
+                  continue
+              updated = s.replace("AxManager", "DJALIMEN MANAGER")
+              if updated != s:
+                  p.write_text(updated, encoding="utf-8")
+                  changed.append(str(p))
+
+          # Set launcher label explicitly and fail if source layout differs.
+          strings = res / "values" / "strings.xml"
+          s = strings.read_text(encoding="utf-8")
+          if '<string name="app_name">DJALIMEN MANAGER</string>' not in s:
+              if '<string name="app_name">AxManager</string>' not in s:
+                  raise SystemExit("Could not verify launcher app_name")
+              strings.write_text(s.replace('<string name="app_name">AxManager</string>', '<string name="app_name">DJALIMEN MANAGER</string>', 1), encoding="utf-8")
 
           settings = Path("settings.gradle.kts")
-          text = settings.read_text()
-          if 'rootProject.name = "AxManager"' not in text:
-              raise SystemExit("Expected Gradle project name was not found")
-          settings.write_text(text.replace('rootProject.name = "AxManager"', 'rootProject.name = "DJALIMEN MANAGER"', 1))
+          s = settings.read_text(encoding="utf-8")
+          s = re.sub(r'rootProject\\.name\\s*=\\s*"[^"]+"', 'rootProject.name = "DJALIMEN MANAGER"', s, count=1)
+          settings.write_text(s, encoding="utf-8")
 
           gradle = Path("manager/build.gradle.kts")
-          text = gradle.read_text()
-          if '"AxManager_v' not in text:
-              raise SystemExit("Expected APK output naming pattern was not found")
-          gradle.write_text(text.replace('"AxManager_v', '"DJALIMEN-MANAGER_v', 1))
+          s = gradle.read_text(encoding="utf-8")
+          s = s.replace('"AxManager_v', '"DJALIMEN-MANAGER_v')
+          gradle.write_text(s, encoding="utf-8")
+
+          print("Updated user-visible resource files:", *changed, sep="\\n - ")
+          print("Verified launcher label: DJALIMEN MANAGER")
           PY
 
       - name: Build debug APK

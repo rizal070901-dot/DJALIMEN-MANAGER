@@ -146,7 +146,7 @@ jobs:
           # This is presentation-only; version metadata and application behavior remain unchanged.
           marquee_import = "import androidx.compose.foundation.basicMarquee"
           if marquee_import not in s:
-              s = s.replace("import androidx.compose.foundation.background", "import androidx.compose.foundation.background\\n" + marquee_import, 1)
+              s = s.replace("import androidx.compose.foundation.background", "import androidx.compose.foundation.background\n" + marquee_import, 1)
           old_version_label = """                            Text(
                                 text = "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
                                 style = MaterialTheme.typography.bodySmall,

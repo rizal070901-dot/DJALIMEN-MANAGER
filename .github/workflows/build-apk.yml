@@ -496,6 +496,85 @@ jobs:
               if not s.startswith("DJALIMEN MANAGER\\n"):
                   notice.write_text(header + s, encoding="utf-8")
 
+          # Migrate the Android app identity, not just its visible label.
+          # Keep library/service package namespaces (frb.axeron.api/server/adb/etc.) intact;
+          # only the manager application package is renamed.
+          old_package = "frb.axeron.manager"
+          new_package = "com.djalimen.manager"
+
+          manager_gradle = Path("manager/build.gradle.kts")
+          gradle_text = manager_gradle.read_text(encoding="utf-8")
+          gradle_text = gradle_text.replace(
+              'namespace = "frb.axeron.manager"',
+              'namespace = "com.djalimen.manager"'
+          )
+          gradle_text = gradle_text.replace(
+              'applicationId = "frb.axeron.manager"',
+              'applicationId = "com.djalimen.manager"'
+          )
+          if 'namespace = "com.djalimen.manager"' not in gradle_text:
+              raise SystemExit("Could not migrate Android namespace")
+          if 'applicationId = "com.djalimen.manager"' not in gradle_text:
+              raise SystemExit("Could not migrate Android applicationId")
+          manager_gradle.write_text(gradle_text, encoding="utf-8")
+
+          # Update every textual reference in source/configuration so manifests,
+          # Kotlin/Java imports, permission names, tests, scripts and provider lookups agree.
+          import os
+          replaced_files = []
+          for root, dirs, files in os.walk("."):
+              dirs[:] = [d for d in dirs if d not in {
+                  ".git", ".gradle", "build", ".idea", ".kotlin"
+              }]
+              for filename in files:
+                  path = Path(root) / filename
+                  try:
+                      content = path.read_text(encoding="utf-8")
+                  except (UnicodeDecodeError, OSError):
+                      continue
+                  if old_package in content:
+                      path.write_text(content.replace(old_package, new_package), encoding="utf-8")
+                      replaced_files.append(str(path))
+
+          # Move source directories to match the new Java/Kotlin package declarations.
+          source_roots = [
+              Path("manager/src/main/java"),
+              Path("manager/src/test/java"),
+              Path("manager/src/androidTest/java"),
+          ]
+          moved_dirs = []
+          for source_root in source_roots:
+              old_dir = source_root / "frb" / "axeron" / "manager"
+              new_dir = source_root / "com" / "djalimen" / "manager"
+              if old_dir.exists():
+                  if new_dir.exists():
+                      raise SystemExit("Target package directory already exists: " + str(new_dir))
+                  new_dir.parent.mkdir(parents=True, exist_ok=True)
+                  old_dir.rename(new_dir)
+                  moved_dirs.append(str(new_dir))
+
+          # Fail the build if any stale manager package reference remains in source/config.
+          stale = []
+          for root, dirs, files in os.walk("."):
+              dirs[:] = [d for d in dirs if d not in {
+                  ".git", ".gradle", "build", ".idea", ".kotlin"
+              }]
+              for filename in files:
+                  path = Path(root) / filename
+                  try:
+                      content = path.read_text(encoding="utf-8")
+                  except (UnicodeDecodeError, OSError):
+                      continue
+                  if old_package in content:
+                      stale.append(str(path))
+          if stale:
+              raise SystemExit("Old application package references remain: " + ", ".join(stale[:20]))
+
+          print("Migrated applicationId and namespace to " + new_package)
+          print("Updated package references in " + str(len(replaced_files)) + " text files")
+          print("Moved package source directories:", moved_dirs)
+          print("Verified no stale " + old_package + " references remain.")
+
           print("Applied DJALIMEN About, Support, accent, and attribution updates.")
           PY
 

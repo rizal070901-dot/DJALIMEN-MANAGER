@@ -30,6 +30,20 @@ jobs:
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platform-tools" "platforms;android-36" "build-tools;36.0.0" "ndk;29.0.14206865"
 
+      - name: Configure CI debug signing
+        working-directory: upstream
+        run: |
+          # The upstream signing keystore is private; use the standard debug keystore in CI.
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("manager/build.gradle.kts")
+          s = p.read_text()
+          old = '        signingConfig = signingConfigs.getByName("frb-project")'
+          if old not in s:
+              raise SystemExit("Expected upstream debug signing config was not found")
+          p.write_text(s.replace(old, '        // CI: use standard Android debug signing config', 1))
+          PY
+
       - name: Build debug APK
         working-directory: upstream
         run: |

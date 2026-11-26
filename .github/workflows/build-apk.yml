@@ -586,7 +586,7 @@ jobs:
               server_text.replace('namespace = "frb.axeron.server"', 'namespace = "com.djalimen.server"', 1),
               encoding="utf-8"
           )
-
+          
           api_gradle = Path("api/api/build.gradle.kts")
           api_text = api_gradle.read_text(encoding="utf-8")
           if 'namespace = "frb.axeron.api"' not in api_text:
@@ -595,25 +595,24 @@ jobs:
               api_text.replace('namespace = "frb.axeron.api"', 'namespace = "com.djalimen.api"', 1),
               encoding="utf-8"
           )
-
-          # The native starter now enters through DJALIMEN's service class. The implementation
-          # and its AIDL contract remain in the legacy package behind this tiny compatibility bridge.
+          
+          # DJALIMEN entry point for app_process; the old implementation/AIDL contract stays intact.
           entry_dir = Path("server/src/main/java/com/djalimen/server")
           entry_dir.mkdir(parents=True, exist_ok=True)
           (entry_dir / "DjalimenService.kt").write_text("""package com.djalimen.server
-
-/**
- * DJALIMEN entry point for app_process. The legacy AxeronService remains the implementation
- * and AIDL contract owner so existing clients keep the same Binder descriptor.
- */
-object DjalimenService {
-    @JvmStatic
-    fun main(args: Array<String>) {
-        frb.axeron.server.AxeronService.main(args)
-    }
-}
-""", encoding="utf-8")
-
+          
+          /**
+           * DJALIMEN entry point for app_process. The legacy AxeronService remains the implementation
+           * and AIDL contract owner so existing clients keep the same Binder descriptor.
+           */
+          object DjalimenService {
+              @JvmStatic
+              fun main(args: Array<String>) {
+                  frb.axeron.server.AxeronService.main(args)
+              }
+          }
+          """, encoding="utf-8")
+          
           starter = Path("server/src/main/cpp/starter.cpp")
           starter_text = starter.read_text(encoding="utf-8")
           old_entry = '#define SERVER_CLASS_PATH "frb.axeron.server.AxeronService"'
@@ -621,54 +620,51 @@ object DjalimenService {
           if old_entry not in starter_text:
               raise SystemExit("Native server entry point not found")
           starter.write_text(starter_text.replace(old_entry, new_entry, 1), encoding="utf-8")
-
+          
           keep = Path("server/consumer-rules.pro")
           keep_text = keep.read_text(encoding="utf-8")
           keep_text += """
-          
           # DJALIMEN app_process entry point (called by the native starter).
           -keep class com.djalimen.server.DjalimenService {
               public static void main(java.lang.String[]);
           }
           """
           keep.write_text(keep_text, encoding="utf-8")
-
-          # Kotlin aliases expose the DJALIMEN API namespace while retaining the original
-          # JVM classes for existing plugins and Java clients.
+          
+          # Kotlin aliases expose the DJALIMEN API namespace while retaining old JVM classes.
           api_java = Path("api/api/src/main/java")
           api_alias = api_java / "com/djalimen/api"
           api_alias.mkdir(parents=True, exist_ok=True)
           (api_alias / "DjalimenApi.kt").write_text("""package com.djalimen.api
-
-typealias Axeron = frb.axeron.api.Axeron
-typealias AxeronBinderWrapper = frb.axeron.api.AxeronBinderWrapper
-typealias AxeronCommandSession = frb.axeron.api.AxeronCommandSession
-typealias AxeronFileService = frb.axeron.api.AxeronFileService
-typealias AxeronInfo = frb.axeron.api.AxeronInfo
-typealias AxeronPluginService = frb.axeron.api.AxeronPluginService
-typealias SystemServiceHelper = frb.axeron.api.SystemServiceHelper
-""", encoding="utf-8")
-
+          
+          typealias Axeron = frb.axeron.api.Axeron
+          typealias AxeronBinderWrapper = frb.axeron.api.AxeronBinderWrapper
+          typealias AxeronCommandSession = frb.axeron.api.AxeronCommandSession
+          typealias AxeronFileService = frb.axeron.api.AxeronFileService
+          typealias AxeronInfo = frb.axeron.api.AxeronInfo
+          typealias AxeronPluginService = frb.axeron.api.AxeronPluginService
+          typealias SystemServiceHelper = frb.axeron.api.SystemServiceHelper
+          """, encoding="utf-8")
+          
           core_alias = api_java / "com/djalimen/api/core"
           core_alias.mkdir(parents=True, exist_ok=True)
           (core_alias / "DjalimenApiCore.kt").write_text("""package com.djalimen.api.core
-
-typealias AxeronSettings = frb.axeron.api.core.AxeronSettings
-typealias Engine = frb.axeron.api.core.Engine
-typealias Starter = frb.axeron.api.core.Starter
-""", encoding="utf-8")
-
+          
+          typealias AxeronSettings = frb.axeron.api.core.AxeronSettings
+          typealias Engine = frb.axeron.api.core.Engine
+          typealias Starter = frb.axeron.api.core.Starter
+          """, encoding="utf-8")
+          
           utils_alias = api_java / "com/djalimen/api/utils"
           utils_alias.mkdir(parents=True, exist_ok=True)
           (utils_alias / "DjalimenApiUtils.kt").write_text("""package com.djalimen.api.utils
-
-typealias AnsiFilter = frb.axeron.api.utils.AnsiFilter
-typealias EmptySharedPreferencesImpl = frb.axeron.api.utils.EmptySharedPreferencesImpl
-typealias Excluder = frb.axeron.api.utils.Excluder
-""", encoding="utf-8")
-
-          # Move DJALIMEN's own Kotlin call sites to the new API facade. Do not rewrite the
-          # API implementation itself: old package names remain as binary compatibility classes.
+          
+          typealias AnsiFilter = frb.axeron.api.utils.AnsiFilter
+          typealias EmptySharedPreferencesImpl = frb.axeron.api.utils.EmptySharedPreferencesImpl
+          typealias Excluder = frb.axeron.api.utils.Excluder
+          """, encoding="utf-8")
+          
+          # Migrate DJALIMEN's Kotlin imports, but never rewrite the legacy API implementation.
           import os
           migrated_imports = []
           for root, dirs, files in os.walk("."):
@@ -686,11 +682,11 @@ typealias Excluder = frb.axeron.api.utils.Excluder
                   if "frb.axeron.api" in content:
                       path.write_text(content.replace("frb.axeron.api", "com.djalimen.api"), encoding="utf-8")
                       migrated_imports.append(str(path))
-
+          
           print("DJALIMEN service entry point: com.djalimen.server.DjalimenService")
           print("DJALIMEN API namespace: com.djalimen.api (legacy JVM API retained)")
           print("Updated API imports in " + str(len(migrated_imports)) + " project source files.")
-
+          
           print("Applied DJALIMEN About, Support, accent, and attribution updates.")
           PY
 

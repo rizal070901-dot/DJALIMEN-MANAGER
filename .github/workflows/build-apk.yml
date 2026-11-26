@@ -145,6 +145,64 @@ jobs:
           s = s.replace('https://github.com/fahrez182/AxManager/issues', 'https://github.com/rizal070901-dot/DJALIMEN-MANAGER/issues')
           s = s.replace('https://github.com/fahrez182/AxManager', 'https://github.com/rizal070901-dot/DJALIMEN-MANAGER')
           s = s.replace('https://fahrez182.github.io/AxManager', 'https://github.com/rizal070901-dot/DJALIMEN-MANAGER#readme')
+          # Give Home a distinct DJALIMEN dashboard identity without touching feature logic.
+          home_anchor = """            // Status and the plugin/privilege counts read as one card: square inner edges,"""
+          home_hero = """            Surface(
+                color = Color(0xFF0D1B33),
+                shape = AxCardShape,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(Color(0xFF10294D), Color(0xFF14203A), Color(0xFF0D1B33))
+                            )
+                        )
+                        .padding(horizontal = 18.dp, vertical = 18.dp)
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "DJALIMEN CONTROL CENTER",
+                            color = Color(0xFF8FC4FF),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = 1.8.sp
+                        )
+                        Text(
+                            text = "Kelola Performa\nAndroid Anda",
+                            color = Color(0xFFF4F7FF),
+                            fontSize = 25.sp,
+                            lineHeight = 29.sp,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                        Text(
+                            text = "Modul • Layanan • Kontrol perangkat",
+                            color = Color(0xFFB7C9E5),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Surface(
+                            color = Color(0xFF1C3B66),
+                            shape = CircleShape
+                        ) {
+                            Text(
+                                text = "DJM  /  BY DJALIMEN",
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                color = Color(0xFFB9D9FF),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Status and the plugin/privilege counts read as one card: square inner edges,"""
+          if home_anchor not in s:
+              raise SystemExit("Home dashboard insertion anchor missing")
+          s = s.replace(home_anchor, home_hero, 1)
           # Replace report-issue controls with a direct DJALIMEN YouTube link.
           s = s.replace('val telegramUrl = "https://t.me/axeron_manager"', 'val youtubeUrl = "https://youtube.com/@djalimenchannel?si=-E0j7Hh9ryEFMljD"')
           s = s.replace('title = stringResource(R.string.report_issue),', 'title = "YouTube DJALIMEN",')

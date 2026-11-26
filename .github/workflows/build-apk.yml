@@ -109,39 +109,30 @@ jobs:
               raise SystemExit("About support label target missing")
           s = s.replace(support_label, 'Text("Dukung DJALIMEN di GitHub")', 1)
 
-          # Add a license/attribution link immediately after the existing support button.
-          support_end = '''                Spacer(modifier = Modifier.height(16.dp))
-            }
-        }
-    }
-}
-
-private fun isShizukuAppInstalled'''
-          license_button = '''                Spacer(modifier = Modifier.height(8.dp))
-
-                FilledTonalButton(
-                    onClick = { uriHandler.openUri("https://github.com/rizal070901-dot/DJALIMEN-MANAGER/blob/main/LICENSE") },
-                    modifier = Modifier.height(38.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Info,
-                        contentDescription = "License and attribution",
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text("Lisensi & Atribusi")
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-'''
-          if support_end not in s:
+          # Insert the license button before the closing spacer of DeveloperInfo.
+          anchor = '                Spacer(modifier = Modifier.height(16.dp))\\n            }\\n        }\\n    }\\n}\\n\\nprivate fun isShizukuAppInstalled'
+          if anchor not in s:
               raise SystemExit("About support layout anchor missing")
-          s = s.replace(support_end, license_button + '''            }
-        }
-    }
-}
-
-private fun isShizukuAppInstalled''', 1)
+          license_lines = [
+              '                Spacer(modifier = Modifier.height(8.dp))',
+              '',
+              '                FilledTonalButton(',
+              '                    onClick = { uriHandler.openUri("https://github.com/rizal070901-dot/DJALIMEN-MANAGER/blob/main/LICENSE") },',
+              '                    modifier = Modifier.height(38.dp)',
+              '                ) {',
+              '                    Icon(',
+              '                        imageVector = Icons.Outlined.Info,',
+              '                        contentDescription = "License and attribution",',
+              '                        modifier = Modifier.size(20.dp)',
+              '                    )',
+              '                    Spacer(Modifier.width(8.dp))',
+              '                    Text("Lisensi & Atribusi")',
+              '                }',
+              '',
+              '                Spacer(modifier = Modifier.height(16.dp))',
+          ]
+          insert = '\\n'.join(license_lines) + '\\n            }\\n        }\\n    }\\n}\\n\\nprivate fun isShizukuAppInstalled'
+          s = s.replace(anchor, insert, 1)
           settings_ui.write_text(s, encoding="utf-8")
 
           home_ui = Path("manager/src/main/java/frb/axeron/manager/ui/screen/Home.kt")

@@ -140,14 +140,14 @@ jobs:
               s = theme_file.read_text(encoding="utf-8")
               s = s.replace('<item name="colorPrimary">@color/orange</item>', '<item name="colorPrimary">#4D8DFF</item>')
               if '<item name="android:statusBarColor">' not in s:
-                  s = s.replace('</style>', '<item name="android:statusBarColor">#080F1D</item>\\n        <item name="android:navigationBarColor">#080F1D</item>\\n        <item name="android:windowLightStatusBar">false</item>\\n        <item name="android:windowLightNavigationBar">false</item>\\n    </style>', 1)
+                  s = s.replace('</style>', chr(10).join(['<item name="android:statusBarColor">#080F1D</item>', '        <item name="android:navigationBarColor">#080F1D</item>', '        <item name="android:windowLightStatusBar">false</item>', '        <item name="android:windowLightNavigationBar">false</item>', '    </style>']), 1)
               theme_file.write_text(s, encoding="utf-8")
 
           # Completely redesign the About bottom sheet while keeping the original navigation actions.
           settings_ui = Path("manager/src/main/java/frb/axeron/manager/ui/screen/Settings.kt")
           s = settings_ui.read_text(encoding="utf-8")
           start = s.index("fun DeveloperInfo(")
-          end = s.index("\\nprivate fun isShizukuAppInstalled", start)
+          end = s.index(chr(10) + "private fun isShizukuAppInstalled", start)
           about_ui = """fun DeveloperInfo(
               showDialog: Boolean,
               onDismissRequest: () -> Unit

@@ -57,6 +57,12 @@ jobs:
           for p in res.glob("values*/strings.xml"):
               s = p.read_text(encoding="utf-8")
               updated = s.replace("AxManager", "DJALIMEN MANAGER")
+              # Consistent DJALIMEN naming for help/support labels in English and Indonesian.
+              if p.name == "strings.xml":
+                  updated = updated.replace('<string name="support_me">Support Me</string>', '<string name="support_me">Support DJALIMEN</string>')
+                  updated = updated.replace('<string name="support_me">Dukung Saya</string>', '<string name="support_me">Dukung DJALIMEN</string>')
+                  updated = updated.replace('<string name="learn_more">Learn DJALIMEN MANAGER</string>', '<string name="learn_more">Learn DJALIMEN MANAGER</string>')
+                  updated = updated.replace('<string name="learn_more">Pelajari DJALIMEN MANAGER</string>', '<string name="learn_more">Pelajari DJALIMEN MANAGER</string>')
               if updated != s:
                   p.write_text(updated, encoding="utf-8")
                   changed.append(str(p))
@@ -114,6 +120,7 @@ jobs:
           if old_image not in s:
               raise SystemExit("About profile image patch target missing")
           s = s.replace(old_image, new_image, 1)
+          s = s.replace('.background(Color(0xFF303030))', '.background(Color(0xFF5577FF))', 1)
 
           # Turn the support action into a clearly labeled project-support link, then expose the license.
           old_support = '''                    Icon(

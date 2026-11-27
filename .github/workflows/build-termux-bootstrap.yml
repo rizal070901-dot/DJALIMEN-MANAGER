@@ -80,7 +80,9 @@ jobs:
           # Build the exact CPython 3.12 host interpreter from the official python.org
           # source release; verify its published SHA-256 before compiling.
           ./scripts/run-docker.sh sudo apt-get update
-          ./scripts/run-docker.sh sudo apt-get install -y build-essential zlib1g-dev libncurses-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev libbz2-dev liblzma-dev uuid-dev tk-dev
+          # Keep the builder image's pinned/held toolchain packages unchanged.
+          # Install only missing build dependencies; never upgrade held packages.
+          ./scripts/run-docker.sh sudo apt-get install -y --no-upgrade zlib1g-dev libncurses-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev libbz2-dev liblzma-dev uuid-dev tk-dev
           ./scripts/run-docker.sh bash -lc 'set -euo pipefail
             cd /tmp
             curl -fL --retry 3 https://www.python.org/ftp/python/3.12.11/Python-3.12.11.tar.xz -o Python-3.12.11.tar.xz

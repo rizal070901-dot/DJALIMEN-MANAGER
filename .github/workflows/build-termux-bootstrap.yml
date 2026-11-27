@@ -76,11 +76,22 @@ jobs:
           # The Termux builder image does not ship with the pinned Android NDK.
           # Install SDK/NDK inside the persistent builder container before compiling.
           ./scripts/run-docker.sh ./scripts/setup-android-sdk.sh
-          # CPython 3.12 is required as the native build interpreter when cross-compiling
-          # the Termux Python package for Android targets.
+          # The builder image uses Ubuntu resolute, which does not publish python3.12.
+          # Build the exact CPython 3.12 host interpreter from the official python.org
+          # source release; verify its published SHA-256 before compiling.
           ./scripts/run-docker.sh sudo apt-get update
-          ./scripts/run-docker.sh sudo apt-get install -y python3.12
-          ./scripts/run-docker.sh python3.12 --version
+          ./scripts/run-docker.sh sudo apt-get install -y build-essential zlib1g-dev libncurses-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev libbz2-dev liblzma-dev uuid-dev tk-dev
+          ./scripts/run-docker.sh bash -lc 'set -euo pipefail
+            cd /tmp
+            curl -fL --retry 3 https://www.python.org/ftp/python/3.12.11/Python-3.12.11.tar.xz -o Python-3.12.11.tar.xz
+            echo "c30bb24b7f1e9a19b11b55a546434f74e739bb4c271a3e3a80ff4380d49f7adb  Python-3.12.11.tar.xz" | sha256sum -c -
+            tar -xf Python-3.12.11.tar.xz
+            cd Python-3.12.11
+            ./configure --prefix=/usr/local --with-ensurepip=install
+            make -j2
+            sudo make altinstall
+            /usr/local/bin/python3.12 --version
+          '
           ./scripts/run-docker.sh ./scripts/build-bootstraps.sh --architectures "${{ matrix.termux_arch }}" --no-build-unneeded-subpackages
 
       - name: Verify bootstrap archive

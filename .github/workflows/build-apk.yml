@@ -430,11 +430,11 @@ jobs:
           # deliberately not renamed here; only XML values and drawable references are changed.
           import os
           brand_patterns = [
-              (r"(?i)\\bAxManager\\b", "DJALIMEN MANAGER"),
-              (r"(?i)\\bAxeronSupport\\b", "DJALIMEN Support"),
-              (r"(?i)\\bAX-Permission\\b", "DJALIMEN Permission"),
-              (r"(?i)\\bAx-Environment\\b", "DJALIMEN Environment"),
-              (r"(?i)\\bAxeron\\b", "DJALIMEN"),
+              (r"(?i)\bAxManager\b", "DJALIMEN MANAGER"),
+              (r"(?i)\bAxeronSupport\b", "DJALIMEN Support"),
+              (r"(?i)\bAX-Permission\b", "DJALIMEN Permission"),
+              (r"(?i)\bAx-Environment\b", "DJALIMEN Environment"),
+              (r"(?i)\bAxeron\b", "DJALIMEN"),
           ]
           for xml_file in res.glob("values*/strings.xml"):
               xml_text = xml_file.read_text(encoding="utf-8")
@@ -446,8 +446,8 @@ jobs:
                   return ">" + value + "<"
               updated_xml = re.sub(r">([^<>]*)<", brand_text_node, xml_text)
               updated_xml = re.sub(
-                  r'(<string\\s+name="app_name"[^>]*>)[^<]*(</string>)',
-                  r'\\1DJALIMEN MANAGER\\2',
+                  r'(<string\s+name="app_name"[^>]*>)[^<]*(</string>)',
+                  r'\1DJALIMEN MANAGER\2',
                   updated_xml
               )
               if updated_xml != xml_text:
@@ -474,7 +474,7 @@ jobs:
           app_name_values = []
           for xml_file in res.glob("values*/strings.xml"):
               xml_text = xml_file.read_text(encoding="utf-8")
-              for match in re.finditer(r'<string\\s+name="app_name"[^>]*>(.*?)</string>', xml_text, re.S):
+              for match in re.finditer(r'<string\s+name="app_name"[^>]*>(.*?)</string>', xml_text, re.S):
                   app_name_values.append((str(xml_file), match.group(1)))
               visible_text = re.sub(r"<[^>]+>", "", xml_text)
               if re.search(r"(?i)AxManager|Axeron|AX-Permission|Ax-Environment", visible_text):

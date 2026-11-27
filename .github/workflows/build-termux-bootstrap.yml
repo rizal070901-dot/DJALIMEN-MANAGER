@@ -74,6 +74,7 @@ jobs:
           s = p.read_text(encoding="utf-8")
           replacements = [
               ('TERMUX_PKG_BUILD_DEPENDS="tcl"\n', ''),
+              ('TERMUX_PKG_DEPENDS="zlib"', 'TERMUX_PKG_DEPENDS="zlib, readline"'),
               ('--with-tcl=$TERMUX_PREFIX/lib\n--with-tclsh=$(command -v tclsh)\n', ''),
               ('\texport TCL_CONFIG_SH="$TERMUX_PREFIX/lib/tclConfig.sh"\n\texport TCLLIBDIR="$TERMUX_PREFIX/lib"\n', ''),
           ]

@@ -443,9 +443,20 @@ jobs:
 
           adb_service = Path("adb/src/main/java/frb/axeron/adb/AdbPairingService.kt")
           adb_text = adb_service.read_text(encoding="utf-8")
+          # The Android Wireless Debugging "Paired devices" label comes from the
+          # comment appended to this app's ADB public key, not from app_name or its icon.
+          # Change the key comment while retaining the same key store and cryptographic key.
+          pairing_key_anchor = 'AdbKey(keyStore(), "axeron")'
+          if pairing_key_anchor not in adb_text:
+              raise SystemExit("ADB pairing key identity anchor missing; refusing an unsafe partial patch")
+          adb_text = adb_text.replace(pairing_key_anchor, 'AdbKey(keyStore(), "DJALIMEN")', 1)
+          if 'AdbKey(keyStore(), "axeron")' in adb_text:
+              raise SystemExit("Legacy ADB public-key identity remains in pairing service")
           if ".setSmallIcon(R.drawable.ic_axeron)" not in adb_text:
               raise SystemExit("ADB pairing notification icon anchor missing")
           adb_text = adb_text.replace(".setSmallIcon(R.drawable.ic_axeron)", ".setSmallIcon(R.drawable.ic_djalimen_notification)", 1)
+          if 'AdbKey(keyStore(), "DJALIMEN")' not in adb_text:
+              raise SystemExit("DJALIMEN ADB public-key identity was not applied")
           adb_service.write_text(adb_text, encoding="utf-8")
 
           watchdog = Path("manager/src/main/java/frb/axeron/manager/adb/BootWatchdogService.kt")

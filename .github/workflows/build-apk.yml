@@ -342,6 +342,75 @@ jobs:
           editor_text = editor_text.replace(env_value_anchor, env_value_display, 1)
           editor_ui.write_text(editor_text, encoding="utf-8")
           print("Applied DJALIMEN display aliases to legacy environment keys and values; backend identifiers preserved.")
+          
+          # Complete the remaining user-visible identity cleanup without changing Binder/JNI
+          # package contracts or the legacy environment protocol consumed by existing plugins.
+          # The old strings are retained only as compatibility internals where required.
+          env_value_fn = 'private fun EnvValueText(text: String) {'
+          env_value_patch = '''private fun EnvValueText(text: String) {
+              val displayText = text.replace(Regex("(?i)axeron"), "djalimen")'''
+          if env_value_fn not in editor_text:
+              raise SystemExit("EnvValueText function anchor missing")
+          editor_text = editor_text.replace(env_value_fn, env_value_patch, 1)
+          old_env_render = '''        Text(
+              text = text,
+              style = MaterialTheme.typography.bodySmall,
+              fontFamily = FontFamily.Monospace,'''
+          new_env_render = '''        Text(
+              text = displayText,
+              style = MaterialTheme.typography.bodySmall,
+              fontFamily = FontFamily.Monospace,'''
+          if old_env_render not in editor_text:
+              raise SystemExit("EnvValueText render anchor missing")
+          editor_text = editor_text.replace(old_env_render, new_env_render, 1)
+          editor_ui.write_text(editor_text, encoding="utf-8")
+
+          # Give newly paired wireless-debugging clients the DJALIMEN label.
+          pairing = Path("adb/src/main/java/frb/axeron/adb/AdbPairingService.kt")
+          pairing_text = pairing.read_text(encoding="utf-8")
+          if 'AdbKey(keyStore(), "axeron")' not in pairing_text:
+              raise SystemExit("ADB pairing key-label anchor missing")
+          pairing_text = pairing_text.replace('AdbKey(keyStore(), "axeron")', 'AdbKey(keyStore(), "djalimen")', 1)
+          pairing.write_text(pairing_text, encoding="utf-8")
+
+          # The starter is an executable packaged in the nativeLibraryDir, not a JNI ABI.
+          # Rename the executable filename and every launcher/reference as one atomic source patch.
+          cmake = Path("server/src/main/cpp/CMakeLists.txt")
+          cmake_text = cmake.read_text(encoding="utf-8")
+          if "add_executable(libaxeron.so" not in cmake_text:
+              raise SystemExit("Native starter CMake target anchor missing")
+          cmake_text = cmake_text.replace("libaxeron.so", "libdjalimen.so")
+          cmake.write_text(cmake_text, encoding="utf-8")
+
+          # Update all textual launchers/docs/tests to use the new starter filename and process label.
+          for root, dirs, files in os.walk("."):
+              dirs[:] = [d for d in dirs if d not in {".git", ".gradle", "build", ".idea", ".kotlin"}]
+              for filename in files:
+                  path = Path(root) / filename
+                  try:
+                      text = path.read_text(encoding="utf-8")
+                  except (UnicodeDecodeError, OSError):
+                      continue
+                  updated = text.replace("libaxeron.so", "libdjalimen.so")
+                  updated = updated.replace("axeron_server", "djalimen_server")
+                  if updated != text:
+                      path.write_text(updated, encoding="utf-8")
+
+          # Device shell identity shown to plugins and terminal sessions.
+          service = Path("server/src/main/java/frb/axeron/server/AxeronService.kt")
+          service_text = service.read_text(encoding="utf-8")
+          if '.put("HOSTNAME", "axeron")' not in service_text:
+              raise SystemExit("Server HOSTNAME anchor missing")
+          service_text = service_text.replace('.put("HOSTNAME", "axeron")', '.put("HOSTNAME", "djalimen")', 1)
+          service.write_text(service_text, encoding="utf-8")
+
+          # Ensure the renamed native executable and paired-device label are present in source.
+          if "libaxeron.so" in cmake.read_text(encoding="utf-8"):
+              raise SystemExit("Legacy native starter filename remains in CMake")
+          if 'AdbKey(keyStore(), "djalimen")' not in pairing.read_text(encoding="utf-8"):
+              raise SystemExit("DJALIMEN ADB pairing label verification failed")
+          print("Renamed native starter to libdjalimen.so; updated paired-device and shell host labels.")
+
 
           # Replace legacy Axeron small notification icons with an original DJALIMEN mark.
           # Small notification icons must be monochrome for Android System UI.

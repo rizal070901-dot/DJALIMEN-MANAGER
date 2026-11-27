@@ -55,9 +55,12 @@ jobs:
         env:
           CI: "true"
         run: |
-          chmod +x scripts/run-docker.sh scripts/build-bootstraps.sh
+          chmod +x scripts/run-docker.sh scripts/build-bootstraps.sh scripts/setup-android-sdk.sh
           # Package identity changes require a clean package build cache.
           ./scripts/run-docker.sh ./clean.sh
+          # The Termux builder image does not ship with the pinned Android NDK.
+          # Install SDK/NDK inside the persistent builder container before compiling.
+          ./scripts/run-docker.sh ./scripts/setup-android-sdk.sh
           ./scripts/run-docker.sh ./scripts/build-bootstraps.sh --architectures "${{ matrix.termux_arch }}" --no-build-unneeded-subpackages
 
       - name: Verify bootstrap archive

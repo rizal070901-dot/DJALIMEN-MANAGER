@@ -2,6 +2,8 @@ name: Build DJALIMEN Termux Bootstrap
 
 on:
   workflow_dispatch:
+  push:
+    branches: [feature/embedded-termux]
 
 permissions:
   contents: read
@@ -54,7 +56,7 @@ jobs:
           CI: "true"
         run: |
           chmod +x scripts/run-docker.sh scripts/build-bootstraps.sh
-          ./scripts/run-docker.sh ./scripts/build-bootstraps.sh --architectures "${{ matrix.termux_arch }}"
+          ./scripts/run-docker.sh ./scripts/build-bootstraps.sh -f --architectures "${{ matrix.termux_arch }}"
 
       - name: Verify bootstrap archive
         working-directory: termux-packages

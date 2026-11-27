@@ -76,6 +76,11 @@ jobs:
           # The Termux builder image does not ship with the pinned Android NDK.
           # Install SDK/NDK inside the persistent builder container before compiling.
           ./scripts/run-docker.sh ./scripts/setup-android-sdk.sh
+          # CPython 3.12 is required as the native build interpreter when cross-compiling
+          # the Termux Python package for Android targets.
+          ./scripts/run-docker.sh sudo apt-get update
+          ./scripts/run-docker.sh sudo apt-get install -y python3.12
+          ./scripts/run-docker.sh python3.12 --version
           ./scripts/run-docker.sh ./scripts/build-bootstraps.sh --architectures "${{ matrix.termux_arch }}" --no-build-unneeded-subpackages
 
       - name: Verify bootstrap archive

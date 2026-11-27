@@ -87,7 +87,7 @@ jobs:
           old_function = s[start:end]
           if old_function.count("make tclextension-install") != 1:
               raise SystemExit("Expected one optional Tcl extension install function")
-          new_function = "termux_step_make() {\n\tmake sqlite3 libsqlite3.so\n}\n\ntermux_step_make_install() {\n\t# SQLite's generated install target may pull in its optional host-Tcl extension.\n\t# Remove only Tcl install prerequisites; keep the CLI and shared library install.\n\tif grep -q '^install:.*install-tcl' Makefile; then\n\t\tsed -i '/^install:/s/[[:space:]]\\+install-tcl[^[:space:]]*//g' Makefile\n\tfi\n\tif grep -q '^install:.*install-tcl' Makefile; then\n\t\techo 'Tcl install prerequisite remains in SQLite Makefile' >&2\n\t\texit 1\n\tfi\n\tmake install INSTALL.strip=/usr/bin/install\n}"
+          new_function = "termux_step_make() {\n\tmake sqlite3 libsqlite3.so\n}\n\ntermux_step_make_install() {\n\t# SQLite's generated install target may pull in its optional host-Tcl extension.\n\t# Remove only Tcl install prerequisites; keep the CLI and shared library install.\n\tif grep -q '^install:.*install-tcl' Makefile; then\n\t\tsed -i '/^install:/s/[[:space:]]\\+install-tcl[^[:space:]]*//g' Makefile\n\tfi\n\tif grep -q '^install:.*install-tcl' Makefile; then\n\t\techo 'Tcl install prerequisite remains in SQLite Makefile' >&2\n\t\texit 1\n\tfi\n\t# Override SQLite's configure-time Tcl detection: Tcl is a host-only optional extension, not part of the Android bootstrap.\n\tmake HAVE_TCL=0 install INSTALL.strip=/usr/bin/install\n}"
           s = s[:start] + new_function + s[end:]
           p.write_text(s, encoding="utf-8")
           print("libsqlite core targets only (sqlite3 and libsqlite3.so); Tcl extension excluded")

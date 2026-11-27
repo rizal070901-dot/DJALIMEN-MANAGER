@@ -433,6 +433,7 @@ jobs:
               (r"(?i)\bAxManager\b", "DJALIMEN MANAGER"),
               (r"(?i)\bAxeronSupport\b", "DJALIMEN Support"),
               (r"(?i)\bAX-Permission\b", "DJALIMEN Permission"),
+              (r"(?i)\bAX-Stealth Mode\b", "DJALIMEN Stealth Mode"),
               (r"(?i)\bAx-Environment\b", "DJALIMEN Environment"),
               (r"(?i)\bAxeron\b", "DJALIMEN"),
           ]
@@ -477,7 +478,7 @@ jobs:
               for match in re.finditer(r'<string\s+name="app_name"[^>]*>(.*?)</string>', xml_text, re.S):
                   app_name_values.append((str(xml_file), match.group(1)))
               visible_text = re.sub(r"<[^>]+>", "", xml_text)
-              if re.search(r"(?i)AxManager|Axeron|AX-Permission|Ax-Environment", visible_text):
+              if re.search(r"(?i)AxManager|Axeron|AX-Permission|AX-Stealth Mode|Ax-Environment", visible_text):
                   raise SystemExit("Legacy brand remains in visible strings: " + str(xml_file))
           if not app_name_values or any(value != "DJALIMEN MANAGER" for _, value in app_name_values):
               raise SystemExit("One or more localized launcher labels are not DJALIMEN MANAGER: " + repr(app_name_values))

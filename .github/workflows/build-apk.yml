@@ -85,6 +85,37 @@ jobs:
                   p.write_text(updated, encoding="utf-8")
                   changed.append(str(p))
 
+          # Restore/guarantee Kotlin-facing resource IDs after branding.
+          # These IDs are internal API symbols referenced by R.string.*; their visible
+          # values are DJALIMEN-branded. Add only when absent to avoid duplicate resources.
+          resource_aliases = {
+              "axeron_environment": "DJALIMEN Environment",
+              "plugin_axeron_support": "DJALIMEN Support",
+              "axeron_permission": "DJALIMEN Permission",
+              "axeron_permission_desc": "Permission interception provided by DJALIMEN",
+              "axeron_permission_shizuku_missing": "Install Shizuku if an older app requires it; Shizuku does not need to be started.",
+          }
+          for xml_file in res.glob("values*/strings.xml"):
+              xml_text = xml_file.read_text(encoding="utf-8")
+              for resource_name, visible_value in resource_aliases.items():
+                  key_pattern = r'<string\\s+name="' + re.escape(resource_name) + r'"(?:\\s+[^>]*)?>'
+                  if not re.search(key_pattern, xml_text):
+                      if xml_file.parent.name == "values-in":
+                          localized = {
+                              "axeron_environment": "Lingkungan DJALIMEN",
+                              "plugin_axeron_support": "Dukungan DJALIMEN",
+                              "axeron_permission": "Izin DJALIMEN",
+                              "axeron_permission_desc": "Intersepsi izin yang disediakan oleh DJALIMEN",
+                              "axeron_permission_shizuku_missing": "Pasang Shizuku jika aplikasi lama memerlukannya; Shizuku tidak perlu dijalankan.",
+                          }
+                          visible_value = localized[resource_name]
+                      xml_text = xml_text.replace("</resources>", f'    <string name="{resource_name}">{visible_value}</string>\\n</resources>')
+              xml_file.write_text(xml_text, encoding="utf-8")
+              for resource_name in resource_aliases:
+                  if not re.search(r'<string\\s+name="' + re.escape(resource_name) + r'"(?:\\s+[^>]*)?>', xml_text):
+                      raise SystemExit("Required Kotlin resource ID missing after branding: " + resource_name + " in " + str(xml_file))
+          print("Verified Kotlin resource IDs across all localized string files:", *resource_aliases)
+
           strings = res / "values" / "strings.xml"
           s = strings.read_text(encoding="utf-8")
           if '<string name="app_name">DJALIMEN MANAGER</string>' not in s:

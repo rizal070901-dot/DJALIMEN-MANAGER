@@ -346,23 +346,21 @@ jobs:
           # Complete the remaining user-visible identity cleanup without changing Binder/JNI
           # package contracts or the legacy environment protocol consumed by existing plugins.
           # The old strings are retained only as compatibility internals where required.
-          env_value_fn = 'private fun EnvValueText(text: String) {'
-          env_value_patch = '''private fun EnvValueText(text: String) {
-              val displayText = text.replace(Regex("(?i)axeron"), "djalimen")'''
-          if env_value_fn not in editor_text:
+          env_start = editor_text.find("private fun EnvValueText(text: String) {")
+          if env_start < 0:
               raise SystemExit("EnvValueText function anchor missing")
-          editor_text = editor_text.replace(env_value_fn, env_value_patch, 1)
-          old_env_render = '''        Text(
-              text = text,
-              style = MaterialTheme.typography.bodySmall,
-              fontFamily = FontFamily.Monospace,'''
-          new_env_render = '''        Text(
-              text = displayText,
-              style = MaterialTheme.typography.bodySmall,
-              fontFamily = FontFamily.Monospace,'''
-          if old_env_render not in editor_text:
-              raise SystemExit("EnvValueText render anchor missing")
-          editor_text = editor_text.replace(old_env_render, new_env_render, 1)
+          env_end = editor_text.find("\\n}", env_start)
+          if env_end < 0:
+              raise SystemExit("EnvValueText function end missing")
+          env_block = editor_text[env_start:env_end]
+          env_block = env_block.replace(
+              "text = text,",
+              'text = text.replace(Regex("(?i)axeron"), "djalimen"),',
+              1
+          )
+          if 'Regex("(?i)axeron")' not in env_block:
+              raise SystemExit("Could not apply environment value display alias")
+          editor_text = editor_text[:env_start] + env_block + editor_text[env_end:]
           editor_ui.write_text(editor_text, encoding="utf-8")
 
           # Give newly paired wireless-debugging clients the DJALIMEN label.

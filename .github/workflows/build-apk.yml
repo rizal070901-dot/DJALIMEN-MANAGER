@@ -98,7 +98,7 @@ jobs:
           for xml_file in res.glob("values*/strings.xml"):
               xml_text = xml_file.read_text(encoding="utf-8")
               for resource_name, visible_value in resource_aliases.items():
-                  key_pattern = r'<string\\s+name="' + re.escape(resource_name) + r'"(?:\\s+[^>]*)?>'
+                  key_pattern = r'<string\s+name="' + re.escape(resource_name) + r'"(?:\s+[^>]*)?>'
                   if not re.search(key_pattern, xml_text):
                       if xml_file.parent.name == "values-in":
                           localized = {
@@ -109,10 +109,10 @@ jobs:
                               "axeron_permission_shizuku_missing": "Pasang Shizuku jika aplikasi lama memerlukannya; Shizuku tidak perlu dijalankan.",
                           }
                           visible_value = localized[resource_name]
-                      xml_text = xml_text.replace("</resources>", f'    <string name="{resource_name}">{visible_value}</string>\\n</resources>')
+                      xml_text = xml_text.replace("</resources>", f'    <string name="{resource_name}">{visible_value}</string>\n</resources>')
               xml_file.write_text(xml_text, encoding="utf-8")
               for resource_name in resource_aliases:
-                  if not re.search(r'<string\\s+name="' + re.escape(resource_name) + r'"(?:\\s+[^>]*)?>', xml_text):
+                  if not re.search(r'<string\s+name="' + re.escape(resource_name) + r'"(?:\s+[^>]*)?>', xml_text):
                       raise SystemExit("Required Kotlin resource ID missing after branding: " + resource_name + " in " + str(xml_file))
           print("Verified Kotlin resource IDs across all localized string files:", *resource_aliases)
 

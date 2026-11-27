@@ -425,6 +425,72 @@ jobs:
           watchdog.write_text(watchdog_text, encoding="utf-8")
           print("Replaced ADB pairing and boot-watchdog notification icons with DJALIMEN branding.")
 
+          # Final branding sweep for all user-visible Android strings and every app-owned icon use.
+          # Resource *keys*, package names, Binder/JNI descriptors and protocol identifiers are
+          # deliberately not renamed here; only XML values and drawable references are changed.
+          import os
+          brand_patterns = [
+              (r"(?i)\\bAxManager\\b", "DJALIMEN MANAGER"),
+              (r"(?i)\\bAxeronSupport\\b", "DJALIMEN Support"),
+              (r"(?i)\\bAX-Permission\\b", "DJALIMEN Permission"),
+              (r"(?i)\\bAx-Environment\\b", "DJALIMEN Environment"),
+              (r"(?i)\\bAxeron\\b", "DJALIMEN"),
+          ]
+          for xml_file in res.glob("values*/strings.xml"):
+              xml_text = xml_file.read_text(encoding="utf-8")
+              # Replace only XML text nodes, never resource names or XML attributes.
+              def brand_text_node(match):
+                  value = match.group(1)
+                  for pattern, replacement in brand_patterns:
+                      value = re.sub(pattern, replacement, value)
+                  return ">" + value + "<"
+              updated_xml = re.sub(r">([^<>]*)<", brand_text_node, xml_text)
+              updated_xml = re.sub(
+                  r'(<string\\s+name="app_name"[^>]*>)[^<]*(</string>)',
+                  r'\\1DJALIMEN MANAGER\\2',
+                  updated_xml
+              )
+              if updated_xml != xml_text:
+                  xml_file.write_text(updated_xml, encoding="utf-8")
+                  print("Completed visible-brand audit:", xml_file)
+
+          # A few UI surfaces and notification builders referenced the legacy drawable directly.
+          # The notification glyph is a monochrome vector, as required by Android's status bar.
+          for module, replacement in (
+              ("manager", "ic_djalimen_mark"),
+              ("adb", "ic_djalimen_notification"),
+          ):
+              module_root = Path(module) / "src" / "main" / "java"
+              for source_file in module_root.rglob("*"):
+                  if source_file.suffix not in (".kt", ".java"):
+                      continue
+                  source_text = source_file.read_text(encoding="utf-8")
+                  updated_source = source_text.replace("R.drawable.ic_axeron", "R.drawable." + replacement)
+                  if updated_source != source_text:
+                      source_file.write_text(updated_source, encoding="utf-8")
+                      print("Replaced legacy drawable reference:", source_file)
+
+          # Hard checks: app label, notification icons and visible strings must all be DJALIMEN.
+          app_name_values = []
+          for xml_file in res.glob("values*/strings.xml"):
+              xml_text = xml_file.read_text(encoding="utf-8")
+              for match in re.finditer(r'<string\\s+name="app_name"[^>]*>(.*?)</string>', xml_text, re.S):
+                  app_name_values.append((str(xml_file), match.group(1)))
+              visible_text = re.sub(r"<[^>]+>", "", xml_text)
+              if re.search(r"(?i)AxManager|Axeron|AX-Permission|Ax-Environment", visible_text):
+                  raise SystemExit("Legacy brand remains in visible strings: " + str(xml_file))
+          if not app_name_values or any(value != "DJALIMEN MANAGER" for _, value in app_name_values):
+              raise SystemExit("One or more localized launcher labels are not DJALIMEN MANAGER: " + repr(app_name_values))
+          for source_file in (
+              Path("adb/src/main/java/frb/axeron/adb/AdbPairingService.kt"),
+              Path("manager/src/main/java/frb/axeron/manager/adb/BootWatchdogService.kt"),
+          ):
+              source_text = source_file.read_text(encoding="utf-8")
+              if "setSmallIcon(R.drawable.ic_djalimen_notification)" not in source_text:
+                  raise SystemExit("DJALIMEN notification icon not configured: " + str(source_file))
+          print("PASS: all localized app labels, visible legacy-brand strings and notification icon references audited.")
+
+
           # DJALIMEN visual identity: vivid blue accent; all resource identifiers remain unchanged.
           colors = res / "values" / "colors.xml"
           s = colors.read_text(encoding="utf-8")

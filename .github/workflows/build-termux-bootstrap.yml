@@ -1,0 +1,72 @@
+name: Build DJALIMEN Termux Bootstrap
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap:
+    name: Bootstrap ${{ matrix.termux_arch }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - termux_arch: aarch64
+            android_abi: arm64-v8a
+          - termux_arch: arm
+            android_abi: armeabi-v7a
+          - termux_arch: x86_64
+            android_abi: x86_64
+
+    steps:
+      - name: Checkout DJALIMEN MANAGER
+        uses: actions/checkout@v4
+
+      - name: Install Docker
+        run: docker version
+
+      - name: Checkout Termux package build sources
+        run: |
+          git clone --depth 1 --branch infra-improvs https://github.com/agnostic-apollo/termux-packages.git termux-packages
+
+      - name: Set DJALIMEN package identity in bootstrap builder
+        working-directory: termux-packages
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("scripts/properties.sh")
+          s = p.read_text(encoding="utf-8")
+          old = 'TERMUX_APP__PACKAGE_NAME="com.termux"'
+          new = 'TERMUX_APP__PACKAGE_NAME="com.djalimen.manager"'
+          if s.count(old) != 1:
+              raise SystemExit("Expected one upstream Termux package identity setting")
+          p.write_text(s.replace(old, new, 1), encoding="utf-8")
+          print("Bootstrap prefix:", "/data/data/com.djalimen.manager/files/usr")
+          PY
+
+      - name: Build architecture-specific Termux bootstrap
+        working-directory: termux-packages
+        env:
+          CI: "true"
+        run: |
+          chmod +x scripts/run-docker.sh scripts/build-bootstraps.sh
+          ./scripts/run-docker.sh ./scripts/build-bootstraps.sh --architectures "${{ matrix.termux_arch }}"
+
+      - name: Verify bootstrap archive
+        working-directory: termux-packages
+        run: |
+          test -s "bootstrap-${{ matrix.termux_arch }}.zip"
+          unzip -t "bootstrap-${{ matrix.termux_arch }}.zip"
+          echo "Verified bootstrap for ${{ matrix.android_abi }}"
+
+      - name: Upload DJALIMEN bootstrap
+        uses: actions/upload-artifact@v4
+        with:
+          name: djalimen-termux-bootstrap-${{ matrix.android_abi }}
+          path: termux-packages/bootstrap-${{ matrix.termux_arch }}.zip
+          if-no-files-found: error
+          retention-days: 14

@@ -102,6 +102,25 @@ jobs:
 
           print("Updated string resources:", *changed, sep="\\n - ")
           print("Verified launcher label: DJALIMEN MANAGER")
+
+          # Replace Axeron branding only in user-visible localized strings.
+          # Keep resource keys, Binder/JNI symbols, protocol names and executable paths intact.
+          for p in res.glob("values*/strings.xml"):
+              s = p.read_text(encoding="utf-8")
+              updated = s.replace("Axeron", "DJALIMEN").replace("AXERON", "DJALIMEN").replace("axeron", "DJALIMEN")
+              if updated != s:
+                  p.write_text(updated, encoding="utf-8")
+                  print("Rebranded visible Axeron strings:", p)
+
+          # Use the DJALIMEN mark in the permission bottom sheet instead of the legacy logo.
+          permission_ui = Path("manager/src/main/java/frb/axeron/manager/ui/RequestPermissionActivity.kt")
+          permission_text = permission_ui.read_text(encoding="utf-8")
+          old_permission_icon = "R.drawable.ic_axeron"
+          if old_permission_icon not in permission_text:
+              raise SystemExit("Permission dialog legacy icon anchor missing")
+          permission_text = permission_text.replace(old_permission_icon, "R.drawable.ic_djalimen_mark", 1)
+          permission_ui.write_text(permission_text, encoding="utf-8")
+          print("Rebranded permission dialog title, descriptions and icon for DJALIMEN.")
           # Rebrand the About / Support surfaces while preserving upstream attribution and behavior.
           settings_ui = Path("manager/src/main/java/frb/axeron/manager/ui/screen/Settings.kt")
           s = settings_ui.read_text(encoding="utf-8")

@@ -117,6 +117,50 @@ jobs:
                   p.write_text(updated, encoding="utf-8")
                   print("Rebranded visible Axeron string values without changing resource keys:", p)
 
+          # Rebrand activation-sheet/log messages safely. Do NOT rename Kotlin symbols,
+          # Binder/JNI classes, protocol keys, package paths or persistent storage identifiers.
+          activation_patches = {
+              "manager/src/main/java/frb/axeron/manager/adb/ActivationLog.kt": {
+                  'info("AxManager ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")':
+                  'info("DJALIMEN MANAGER ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")',
+              },
+              "manager/src/main/java/frb/axeron/manager/ui/viewmodel/ActivateViewModel.kt": {
+                  'ActivationLog.warn("Wi-Fi is off — turn it on in the panel, the activation continues once it is connected")':
+                  'ActivationLog.warn("Wi-Fi nonaktif — aktifkan melalui panel; aktivasi DJALIMEN akan dilanjutkan setelah terhubung")',
+                  'Log.e("AxManager", "startForegroundService", e)':
+                  'Log.e("DJALIMEN", "startForegroundService", e)',
+                  'Log.w("AxManagerBinder", "server refuses the manager, taking it as stopped")':
+                  'Log.w("DJALIMEN Binder", "server refuses the manager, taking it as stopped")',
+              },
+              "manager/src/main/java/frb/axeron/manager/adb/BootWatchdogService.kt": {
+                  'ActivationLog.warn("Wi-Fi is off — waiting for it to be turned on")':
+                  'ActivationLog.warn("Wi-Fi nonaktif — menunggu Wi-Fi diaktifkan")',
+                  'ActivationLog.success("AxManager is active")':
+                  'ActivationLog.success("DJALIMEN MANAGER aktif")',
+              },
+              "manager/src/main/java/frb/axeron/manager/adb/AdbStarter.kt": {
+                  'ActivationLog.info("Running the AxManager starter…")':
+                  'ActivationLog.info("Menjalankan starter DJALIMEN…")',
+              },
+              "manager/src/main/java/frb/axeron/manager/ui/screen/Activate.kt": {
+                  'ActivationLog.info("Waiting for the AxManager server to connect…")':
+                  'ActivationLog.info("Menunggu layanan DJALIMEN terhubung…")',
+                  'ActivationLog.success("AxManager server connected")':
+                  'ActivationLog.success("Layanan DJALIMEN terhubung")',
+                  'ActivationLog.error("No connection from the AxManager server after ${timeoutMs / 1000} s")':
+                  'ActivationLog.error("Layanan DJALIMEN belum terhubung setelah ${timeoutMs / 1000} detik")',
+              },
+          }
+          for relative_path, replacements in activation_patches.items():
+              target = Path(relative_path)
+              source = target.read_text(encoding="utf-8")
+              for old, new in replacements.items():
+                  if old not in source:
+                      raise SystemExit("Activation branding anchor missing in " + relative_path + ": " + old)
+                  source = source.replace(old, new, 1)
+              target.write_text(source, encoding="utf-8")
+              print("Applied safe DJALIMEN activation log branding:", relative_path)
+
           # Use the DJALIMEN mark in the permission bottom sheet instead of the legacy logo.
           permission_ui = Path("manager/src/main/java/frb/axeron/manager/ui/RequestPermissionActivity.kt")
           permission_text = permission_ui.read_text(encoding="utf-8")

@@ -50,6 +50,21 @@ jobs:
           print("Bootstrap prefix:", "/data/data/com.djalimen.manager/files/usr")
           PY
 
+      - name: Pin verified Codeberg foot source archive checksum
+        working-directory: termux-packages
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("x11-packages/foot/build.sh")
+          s = p.read_text(encoding="utf-8")
+          old = "TERMUX_PKG_SHA256=02072b8f0aaf26907b6b02293c875539ce52fc59079344e7cf811ab03394cfa3"
+          new = "TERMUX_PKG_SHA256=b3fa774983abb5f95aecca4557d146091d8666bc65fb310d4d3e38327357ade9"
+          if old not in s:
+              raise SystemExit("Unexpected upstream foot checksum; refusing to patch")
+          p.write_text(s.replace(old, new, 1), encoding="utf-8")
+          print("Pinned foot 1.23.1 Codeberg archive SHA-256 to checksum observed from HTTPS download in all three failed ABI jobs.")
+          PY
+
       - name: Build architecture-specific Termux bootstrap
         working-directory: termux-packages
         env:

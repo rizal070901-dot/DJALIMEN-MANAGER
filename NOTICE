@@ -1,15 +1,20 @@
 DJALIMEN MANAGER
-Maintained and branded by DJALIMEN.
+Copyright (c) 2026 DJALIMEN — project branding, original DJALIMEN-authored
+modifications, integration work, and maintenance.
 
-DJALIMEN branding, maintenance, and project-specific modifications do not replace,
-transfer, or remove the copyrights and license obligations of upstream authors.
-This project is an independent community-maintained distribution and is not an
-official release endorsed by the upstream authors.
+This notice identifies the DJALIMEN project and its own original contributions.
+It does NOT claim ownership of upstream code or transfer another author's
+copyright. Existing upstream and third-party notices below are preserved as
+required by their respective licenses. DJALIMEN branding does not make this
+distribution an official upstream release.
 
-Upstream foundation: AxManager
+UPSTREAM DERIVATIVE-CODE ATTRIBUTION
+This distribution currently contains code derived from and modified from
+AxManager. It is therefore not yet a clean-room, upstream-independent rewrite.
 Original project: https://github.com/fahrez182/AxManager
-Copyright notices and third-party attributions below are retained from the
-upstream project and its bundled components.
+The following upstream copyright and license notices remain applicable to
+the portions derived from that project.
+
 
 AxManager
 Copyright 2025-2026 FahrezRB

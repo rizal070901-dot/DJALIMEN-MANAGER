@@ -383,6 +383,7 @@ jobs:
           cmake.write_text(cmake_text, encoding="utf-8")
 
           # Update all textual launchers/docs/tests to use the new starter filename and process label.
+          import os
           for root, dirs, files in os.walk("."):
               dirs[:] = [d for d in dirs if d not in {".git", ".gradle", "build", ".idea", ".kotlin"}]
               for filename in files:

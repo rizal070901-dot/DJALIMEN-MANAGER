@@ -57,10 +57,10 @@ jobs:
           native_starter = Path("server/src/main/cpp/starter.cpp")
           native_source = native_starter.read_text(encoding="utf-8")
           native_replacements = {
-              'printf("info: axeron_server pid is %d\\n", pid);': 'printf("info: DJALIMEN native service pid is %d\\n", pid);',
-              'printf("info: axeron_starter exit with 0\\n");': 'printf("info: DJALIMEN native starter exit with 0\\n");',
-              'fatal: run AxManager from non root nor adb user (uid=%d).\\n': 'fatal: run DJALIMEN MANAGER from non root nor adb user (uid=%d).\\n',
-              'fatal: can\'t kill %d, please try to stop existing AxManager from app first.\\n': 'fatal: can\'t kill %d, please stop the existing DJALIMEN MANAGER service from the app first.\\n',
+              'printf("info: axeron_server pid is %d\n", pid);': 'printf("info: DJALIMEN native service pid is %d\n", pid);',
+              'printf("info: axeron_starter exit with 0\n");': 'printf("info: DJALIMEN native starter exit with 0\n");',
+              'fatal: run AxManager from non root nor adb user (uid=%d).\n': 'fatal: run DJALIMEN MANAGER from non root nor adb user (uid=%d).\n',
+              'fatal: can\'t kill %d, please try to stop existing AxManager from app first.\n': 'fatal: can\'t kill %d, please stop the existing DJALIMEN MANAGER service from the app first.\n',
           }
           for old, new in native_replacements.items():
               if old not in native_source:
@@ -100,7 +100,7 @@ jobs:
           s = s.replace('"AxManager_v', '"DJALIMEN-MANAGER_v')
           gradle.write_text(s, encoding="utf-8")
 
-          print("Updated string resources:", *changed, sep="\\n - ")
+          print("Updated string resources:", *changed, sep="\n - ")
           print("Verified launcher label: DJALIMEN MANAGER")
 
           # Replace Axeron branding only in user-visible localized strings.
@@ -353,12 +353,12 @@ jobs:
           env_text_pos = editor_text.find("text =", env_start + len(env_signature))
           if env_text_pos < 0:
               raise SystemExit("EnvValueText value renderer missing")
-          env_line_end = editor_text.find("\\n", env_text_pos)
+          env_line_end = editor_text.find("\n", env_text_pos)
           if env_line_end < 0:
               raise SystemExit("EnvValueText renderer line end missing")
           editor_text = (
               editor_text[:env_start]
-              + env_signature + '\\n    val displayText = text.replace(Regex("(?i)axeron"), "djalimen")'
+              + env_signature + '\n    val displayText = text.replace(Regex("(?i)axeron"), "djalimen")'
               + editor_text[env_start + len(env_signature):env_text_pos]
               + "text = displayText,"
               + editor_text[env_line_end:]
@@ -648,7 +648,7 @@ jobs:
           if notice.exists():
               s = notice.read_text(encoding="utf-8")
               header = "DJALIMEN MANAGER\nCommunity-maintained branded distribution.\nThe underlying AxManager code and third-party components retain their original copyrights and licenses.\n\n"
-              if not s.startswith("DJALIMEN MANAGER\\n"):
+              if not s.startswith("DJALIMEN MANAGER\n"):
                   notice.write_text(header + s, encoding="utf-8")
 
           # Migrate the Android app identity, not just its visible label.

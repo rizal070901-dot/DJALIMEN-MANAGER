@@ -65,6 +65,42 @@ jobs:
           print("Pinned foot 1.23.1 Codeberg archive SHA-256 to checksum observed from HTTPS download in all three failed ABI jobs.")
           PY
 
+      - name: Disable optional Tcl extension during cross-compiled bootstrap
+        working-directory: termux-packages
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("packages/libsqlite/build.sh")
+          s = p.read_text(encoding="utf-8")
+          replacements = [
+              ('TERMUX_PKG_BUILD_DEPENDS="tcl"', 'TERMUX_PKG_BUILD_DEPENDS=""'),
+              ('--with-tcl=$TERMUX_PREFIX/lib\n--with-tclsh=$(command -v tclsh)\n', ''),
+              ('\texport TCL_CONFIG_SH="$TERMUX_PREFIX/lib/tclConfig.sh"\n\texport TCLLIBDIR="$TERMUX_PREFIX/lib"\n', ''),
+          ]
+          for old, new in replacements:
+              if s.count(old) != 1:
+                  raise SystemExit(f"Expected exactly one libsqlite setting/block: {old!r}")
+              s = s.replace(old, new, 1)
+          old_install = '''\tmake install INSTALL.strip=/usr/bin/install
+\tmkdir -p "$TERMUX_PKG_TMPDIR/libsqlite\${TERMUX_PKG_VERSION}"
+\tmake tclextension-install DESTDIR="$TERMUX_PKG_TMPDIR/libsqlite\${TERMUX_PKG_VERSION}" OPTS="-lm"
+
+\t# Move the TCL extension files into their proper place
+\tfind "$TERMUX_PKG_TMPDIR/libsqlite\${TERMUX_PKG_VERSION}" -name "libsqlite\${TERMUX_PKG_VERSION}.so" \\
+\t\t-exec install -vDm700 "{}" "\${TERMUX_PREFIX}/lib/sqlite3/libtclsqlite3.so" \\;
+\tfind "$TERMUX_PKG_TMPDIR/libsqlite\${TERMUX_PKG_VERSION}" -name pkgIndex.tcl \\
+\t\t-exec install -vDm600 "{}" "\${TERMUX_PREFIX}/lib/sqlite3/pkgIndex.tcl" \\;
+
+\t# Remove duplicates
+\trm "$TERMUX_PREFIX/lib"/{pkgIndex.tcl,libtclsqlite3.so}
+'''
+          if s.count(old_install) != 1:
+              raise SystemExit("Expected libsqlite Tcl extension install block exactly once")
+          s = s.replace(old_install, '\tmake install INSTALL.strip=/usr/bin/install\n', 1)
+          p.write_text(s, encoding="utf-8")
+          print("libsqlite core retained; optional Tcl extension excluded from cross-ABI bootstrap")
+          PY
+
       - name: Build architecture-specific Termux bootstrap
         working-directory: termux-packages
         env:

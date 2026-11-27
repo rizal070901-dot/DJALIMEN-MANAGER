@@ -346,21 +346,23 @@ jobs:
           # Complete the remaining user-visible identity cleanup without changing Binder/JNI
           # package contracts or the legacy environment protocol consumed by existing plugins.
           # The old strings are retained only as compatibility internals where required.
-          env_start = editor_text.find("private fun EnvValueText(text: String) {")
+          env_signature = "private fun EnvValueText(text: String) {"
+          env_start = editor_text.find(env_signature)
           if env_start < 0:
               raise SystemExit("EnvValueText function anchor missing")
-          env_end = editor_text.find("\\n}", env_start)
-          if env_end < 0:
-              raise SystemExit("EnvValueText function end missing")
-          env_block = editor_text[env_start:env_end]
-          env_block = env_block.replace(
-              "text = text,",
-              'text = text.replace(Regex("(?i)axeron"), "djalimen"),',
-              1
+          env_text_pos = editor_text.find("text =", env_start + len(env_signature))
+          if env_text_pos < 0:
+              raise SystemExit("EnvValueText value renderer missing")
+          env_line_end = editor_text.find("\\n", env_text_pos)
+          if env_line_end < 0:
+              raise SystemExit("EnvValueText renderer line end missing")
+          editor_text = (
+              editor_text[:env_start]
+              + env_signature + '\\n    val displayText = text.replace(Regex("(?i)axeron"), "djalimen")'
+              + editor_text[env_start + len(env_signature):env_text_pos]
+              + "text = displayText,"
+              + editor_text[env_line_end:]
           )
-          if 'Regex("(?i)axeron")' not in env_block:
-              raise SystemExit("Could not apply environment value display alias")
-          editor_text = editor_text[:env_start] + env_block + editor_text[env_end:]
           editor_ui.write_text(editor_text, encoding="utf-8")
 
           # Give newly paired wireless-debugging clients the DJALIMEN label.

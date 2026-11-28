@@ -921,6 +921,10 @@ jobs:
           source = settings_ui.read_text(encoding="utf-8")
           if "DJALIMEN CONTROL CENTER" not in source:
               shape_import = "import androidx.compose.foundation.shape.RoundedCornerShape"
+              brush_import = "import androidx.compose.ui.graphics.Brush"
+              if brush_import not in source:
+                  source = source.replace("import androidx.compose.ui.graphics.Color",
+                                          "import androidx.compose.ui.graphics.Color\\n" + brush_import, 1)
               if shape_import not in source:
                   source = source.replace("import androidx.compose.foundation.shape.CircleShape",
                                           "import androidx.compose.foundation.shape.CircleShape\\n" + shape_import, 1)

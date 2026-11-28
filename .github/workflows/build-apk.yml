@@ -444,7 +444,7 @@ jobs:
           adb_text = adb_text.replace(".setSmallIcon(R.drawable.ic_axeron)", ".setSmallIcon(R.drawable.ic_djalimen_notification)", 1)
           adb_service.write_text(adb_text, encoding="utf-8")
 
-          watchdog = Path("manager/src/main/java/frb/axeron/manager/adb/BootWatchdogService.kt")
+          watchdog = Path("manager/src/main/java/com/djalimen/manager/adb/BootWatchdogService.kt")
           watchdog_text = watchdog.read_text(encoding="utf-8")
           if ".setSmallIcon(R.drawable.ic_axeron)" not in watchdog_text:
               raise SystemExit("Boot watchdog notification icon anchor missing")

@@ -1056,7 +1056,7 @@ jobs:
               base = Path(root)
               if any(part in SKIP_DIRS for part in base.parts):
                   continue
-              if base.name == "axeron" and base.parent.name == "frb":
+              if base.name in {"axeron", "djalimen"} and base.parent.name == "frb":
                   old_parent = base.parent
                   target = old_parent.parent / "com" / "djalimen"
                   merge_move(base, target)

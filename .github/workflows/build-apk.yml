@@ -993,7 +993,7 @@ jobs:
                   return line
               for before, after in replacements:
                   line = line.replace(before, after)
-              line = re.sub(r"\\bAx(?=[A-Z])", "Djalimen", line)
+              line = re.sub(r"\bAx(?=[A-Z])", "Djalimen", line)
               line = line.replace("Open-source foundation: DjalimenManager by FahrezRB",
                                   "DJALIMEN MANAGER — community-maintained distribution")
               return line
@@ -1095,7 +1095,7 @@ jobs:
               keep.write_text(content, encoding="utf-8")
 
           # Final source audit: only legal/license attribution files may retain upstream names.
-          legacy = re.compile(r"AxManager|Axeron|AXERON|axeron|frb\\.axeron|frb/axeron|\\bAx[A-Z]")
+          legacy = re.compile(r"AxManager|Axeron|AXERON|axeron|frb\.axeron|frb/axeron|\bAx[A-Z]")
           hits = []
           for root, dirs, files in os.walk("."):
               dirs[:] = [d for d in dirs if d not in SKIP_DIRS]

@@ -830,6 +830,92 @@ jobs:
           print("Applied DJALIMEN About, Support, accent, and attribution updates.")
           PY
 
+      - name: Final DJALIMEN branding audit
+        working-directory: upstream
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          # Rewrite only XML element text, never resource identifiers or protocol keys.
+          replacements = [
+              ("AX-Permission Intercept", "Proteksi Izin DJALIMEN"),
+              ("Cegat AX-Permission", "Proteksi Izin DJALIMEN"),
+              ("AX-Stealth Mode", "Mode Privasi DJALIMEN"),
+              ("Ax-Environment", "Lingkungan DJALIMEN"),
+              ("Axeron Environment", "Lingkungan DJALIMEN"),
+              ("Lingkungan Axeron", "Lingkungan DJALIMEN"),
+              ("Axeron permission", "Izin DJALIMEN"),
+              ("Izin Axeron", "Izin DJALIMEN"),
+              ("Axeron/busybox", "DJALIMEN/busybox"),
+              ("AxeronSupport", "Dukungan DJALIMEN"),
+          ]
+          xml_files = list(Path("manager/src/main/res").glob("values*/strings.xml"))
+          for path in xml_files:
+              source = path.read_text(encoding="utf-8")
+              def rebrand(match):
+                  value = match.group(1)
+                  for before, after in replacements:
+                      value = value.replace(before, after)
+                  value = re.sub(r"AxManager", "DJALIMEN MANAGER", value, flags=re.IGNORECASE)
+                  value = re.sub(r"Axeron", "DJALIMEN", value, flags=re.IGNORECASE)
+                  return ">" + value + "<"
+              updated = re.sub(r">([^<>]+)<", rebrand, source)
+              if updated != source:
+                  path.write_text(updated, encoding="utf-8")
+
+          # Ensure the Indonesian settings labels are explicit and no AX legacy label survives.
+          id_strings = Path("manager/src/main/res/values-in/strings.xml")
+          source = id_strings.read_text(encoding="utf-8")
+          exact = {
+              '<string name="axeron_permission">Proteksi Izin DJALIMEN</string>':
+                  r'<string name="axeron_permission">Proteksi Izin DJALIMEN</string>',
+          }
+          for before, after in exact.items():
+              source = source.replace(before, after)
+          id_strings.write_text(source, encoding="utf-8")
+
+          # Notification body and service status are visible to users; preserve service behavior.
+          watchdog = Path("manager/src/main/java/frb/axeron/manager/adb/BootWatchdogService.kt")
+          source = watchdog.read_text(encoding="utf-8")
+          source = source.replace('ActivationLog.success("AxManager is active")',
+                                  'ActivationLog.success("DJALIMEN MANAGER aktif")')
+          watchdog.write_text(source, encoding="utf-8")
+
+          # Replace the old orange upstream glyph in notifications, settings and quick settings.
+          mark = Path("manager/src/main/res/drawable/ic_djalimen_mark.xml")
+          mark.write_text("""<?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="24dp" android:height="24dp"
+              android:viewportWidth="24" android:viewportHeight="24">
+              <path android:fillColor="#FF79B8FF"
+                  android:pathData="M12,1.5 L22.5,12 12,22.5 1.5,12 Z"/>
+              <path android:fillColor="#FF0B1222"
+                  android:pathData="M8,6.5 L15.5,6.5 L15.5,9 L18,9 L18,15 L15.5,15 L15.5,17.5 L8,17.5 L8,15 L5.5,15 L5.5,9 L8,9 Z"/>
+              <path android:fillColor="#FFFFFFFF"
+                  android:pathData="M10,8.5 L14,8.5 L14,10 L15.5,10 L15.5,14 L14,14 L14,15.5 L10,15.5 L10,14 L8.5,14 L8.5,10 L10,10 Z"/>
+          </vector>
+          """, encoding="utf-8")
+          for path in Path(".").rglob("*.kt"):
+              if any(part in {".gradle", "build"} for part in path.parts):
+                  continue
+              try:
+                  source = path.read_text(encoding="utf-8")
+              except (UnicodeDecodeError, OSError):
+                  continue
+              updated = source.replace("R.drawable.ic_axeron", "R.drawable.ic_djalimen_mark")
+              if updated != source:
+                  path.write_text(updated, encoding="utf-8")
+
+          # Fail fast if user-facing Indonesian resources still contain legacy product labels.
+          source = id_strings.read_text(encoding="utf-8")
+          legacy = [token for token in ("AxManager", "Axeron", "AX-Permission", "AX-Stealth", "Ax-Environment")
+                    if token in source]
+          if legacy:
+              raise SystemExit("Legacy visible Indonesian labels remain: " + ", ".join(legacy))
+          print("Verified Indonesian visible labels and replaced old notification/quick-settings glyphs.")
+          PY
+
       - name: Build debug APK
         working-directory: upstream
         run: |

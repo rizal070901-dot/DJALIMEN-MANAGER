@@ -562,7 +562,7 @@ jobs:
               xml_text = notification_xml.read_text(encoding="utf-8")
               for resource_name, localized_values in adb_notification_values.items():
                   value = localized_values[0] if locale_dir == "values-in" else localized_values[1]
-                  tag = r'(<string\\s+name="' + re.escape(resource_name) + r'"[^>]*>).*?(</string>)'
+                  tag = r'(<string\s+name="' + re.escape(resource_name) + r'"[^>]*>).*?(</string>)'
                   xml_text, count = re.subn(tag, lambda m: m.group(1) + value + m.group(2), xml_text, count=1, flags=re.S)
                   if count != 1:
                       raise SystemExit("Could not update ADB notification string " + resource_name + " in " + str(notification_xml))

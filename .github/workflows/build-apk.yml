@@ -913,6 +913,50 @@ jobs:
                     if token in source]
           if legacy:
               raise SystemExit("Legacy visible Indonesian labels remain: " + ", ".join(legacy))
+          # Give Settings its own DJALIMEN Control Center header; keep all existing
+          # controls, callbacks, state and navigation untouched.
+          settings_ui = Path("manager/src/main/java/com/djalimen/manager/ui/screen/Settings.kt")
+          if not settings_ui.exists():
+              raise SystemExit("Migrated Settings.kt not found")
+          source = settings_ui.read_text(encoding="utf-8")
+          if "DJALIMEN CONTROL CENTER" not in source:
+              shape_import = "import androidx.compose.foundation.shape.RoundedCornerShape"
+              if shape_import not in source:
+                  source = source.replace("import androidx.compose.foundation.shape.CircleShape",
+                                          "import androidx.compose.foundation.shape.CircleShape\\n" + shape_import, 1)
+              anchor = '            SettingsSectionHeader(stringResource(R.string.settings_section_environment))'
+              hero = """            Surface(
+                          color = Color(0xFF101D34),
+                          shape = RoundedCornerShape(topStart = 26.dp, topEnd = 10.dp, bottomStart = 10.dp, bottomEnd = 26.dp),
+                          border = BorderStroke(1.dp, Color(0xFF355C91)),
+                          modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                      ) {
+                          Column(
+                              modifier = Modifier
+                                  .background(Brush.linearGradient(listOf(Color(0xFF1B355B), Color(0xFF101D34), Color(0xFF0B1222))))
+                                  .padding(horizontal = 18.dp, vertical = 17.dp),
+                              verticalArrangement = Arrangement.spacedBy(7.dp)
+                          ) {
+                              Row(verticalAlignment = Alignment.CenterVertically) {
+                                  Text("DJM / 01", color = Color(0xFF8FC4FF), fontSize = 11.sp,
+                                      fontWeight = FontWeight.ExtraBold, fontFamily = FontFamily.Monospace)
+                                  Spacer(Modifier.weight(1f))
+                                  Text("SYSTEM CONFIGURATION", color = Color(0xFF7F9FC9), fontSize = 9.sp,
+                                      fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                              }
+                              Text("DJALIMEN CONTROL CENTER", color = Color(0xFFF2F6FF),
+                                  fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.5.sp)
+                              Text("Atur privasi, layanan, dan perilaku perangkat dari satu pusat kendali.",
+                                  color = Color(0xFFB3C5DF), fontSize = 12.sp, lineHeight = 17.sp)
+                          }
+                      }
+
+                      SettingsSectionHeader(stringResource(R.string.settings_section_environment))"""
+              if anchor not in source:
+                  raise SystemExit("Settings environment header anchor missing")
+              source = source.replace(anchor, hero, 1)
+              settings_ui.write_text(source, encoding="utf-8")
+          print("Added DJALIMEN Control Center header to Settings without changing setting behavior.")
           print("Verified Indonesian visible labels and replaced old notification/quick-settings glyphs.")
           PY
 

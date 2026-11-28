@@ -3,7 +3,7 @@ name: Build DJALIMEN Manager APK
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, feature/embedded-termux]
 
 permissions:
   contents: read
@@ -85,6 +85,37 @@ jobs:
                   p.write_text(updated, encoding="utf-8")
                   changed.append(str(p))
 
+          # Restore/guarantee Kotlin-facing resource IDs after branding.
+          # These IDs are internal API symbols referenced by R.string.*; their visible
+          # values are DJALIMEN-branded. Add only when absent to avoid duplicate resources.
+          resource_aliases = {
+              "axeron_environment": "DJALIMEN Environment",
+              "plugin_axeron_support": "DJALIMEN Support",
+              "axeron_permission": "DJALIMEN Permission",
+              "axeron_permission_desc": "Permission interception provided by DJALIMEN",
+              "axeron_permission_shizuku_missing": "Install Shizuku if an older app requires it; Shizuku does not need to be started.",
+          }
+          for xml_file in res.glob("values*/strings.xml"):
+              xml_text = xml_file.read_text(encoding="utf-8")
+              for resource_name, visible_value in resource_aliases.items():
+                  key_pattern = r'<string\s+name="' + re.escape(resource_name) + r'"(?:\s+[^>]*)?>'
+                  if not re.search(key_pattern, xml_text):
+                      if xml_file.parent.name == "values-in":
+                          localized = {
+                              "axeron_environment": "Lingkungan DJALIMEN",
+                              "plugin_axeron_support": "Dukungan DJALIMEN",
+                              "axeron_permission": "Izin DJALIMEN",
+                              "axeron_permission_desc": "Intersepsi izin yang disediakan oleh DJALIMEN",
+                              "axeron_permission_shizuku_missing": "Pasang Shizuku jika aplikasi lama memerlukannya; Shizuku tidak perlu dijalankan.",
+                          }
+                          visible_value = localized[resource_name]
+                      xml_text = xml_text.replace("</resources>", f'    <string name="{resource_name}">{visible_value}</string>\n</resources>')
+              xml_file.write_text(xml_text, encoding="utf-8")
+              for resource_name in resource_aliases:
+                  if not re.search(r'<string\s+name="' + re.escape(resource_name) + r'"(?:\s+[^>]*)?>', xml_text):
+                      raise SystemExit("Required Kotlin resource ID missing after branding: " + resource_name + " in " + str(xml_file))
+          print("Verified Kotlin resource IDs across all localized string files:", *resource_aliases)
+
           strings = res / "values" / "strings.xml"
           s = strings.read_text(encoding="utf-8")
           if '<string name="app_name">DJALIMEN MANAGER</string>' not in s:
@@ -103,14 +134,63 @@ jobs:
           print("Updated string resources:", *changed, sep="\\n - ")
           print("Verified launcher label: DJALIMEN MANAGER")
 
-          # Replace Axeron branding only in user-visible localized strings.
-          # Keep resource keys, Binder/JNI symbols, protocol names and executable paths intact.
+          # Replace Axeron branding only inside XML text nodes.
+          # Resource names such as axeron_environment and plugin_axeron_support are API
+          # identifiers consumed by R.string and MUST remain unchanged.
           for p in res.glob("values*/strings.xml"):
               s = p.read_text(encoding="utf-8")
-              updated = s.replace("Axeron", "DJALIMEN").replace("AXERON", "DJALIMEN").replace("axeron", "DJALIMEN")
+              updated = re.sub(
+                  r">([^<>]*)<",
+                  lambda m: ">" + m.group(1).replace("Axeron", "DJALIMEN").replace("AXERON", "DJALIMEN").replace("axeron", "DJALIMEN") + "<",
+                  s
+              )
               if updated != s:
                   p.write_text(updated, encoding="utf-8")
-                  print("Rebranded visible Axeron strings:", p)
+                  print("Rebranded visible Axeron string values without changing resource keys:", p)
+
+          # Rebrand activation-sheet/log messages safely. Do NOT rename Kotlin symbols,
+          # Binder/JNI classes, protocol keys, package paths or persistent storage identifiers.
+          activation_patches = {
+              "manager/src/main/java/frb/axeron/manager/adb/ActivationLog.kt": {
+                  'info("AxManager ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")':
+                  'info("DJALIMEN MANAGER ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")',
+              },
+              "manager/src/main/java/frb/axeron/manager/ui/viewmodel/ActivateViewModel.kt": {
+                  'ActivationLog.warn("Wi-Fi is off — turn it on in the panel, the activation continues once it is connected")':
+                  'ActivationLog.warn("Wi-Fi nonaktif — aktifkan melalui panel; aktivasi DJALIMEN akan dilanjutkan setelah terhubung")',
+                  'Log.e("AxManager", "startForegroundService", e)':
+                  'Log.e("DJALIMEN", "startForegroundService", e)',
+                  'Log.w("AxManagerBinder", "server refuses the manager, taking it as stopped")':
+                  'Log.w("DJALIMEN Binder", "server refuses the manager, taking it as stopped")',
+              },
+              "manager/src/main/java/frb/axeron/manager/adb/BootWatchdogService.kt": {
+                  'ActivationLog.warn("Wi-Fi is off — waiting for it to be turned on")':
+                  'ActivationLog.warn("Wi-Fi nonaktif — menunggu Wi-Fi diaktifkan")',
+                  'ActivationLog.success("AxManager is active")':
+                  'ActivationLog.success("DJALIMEN MANAGER aktif")',
+              },
+              "manager/src/main/java/frb/axeron/manager/adb/AdbStarter.kt": {
+                  'ActivationLog.info("Running the AxManager starter…")':
+                  'ActivationLog.info("Menjalankan starter DJALIMEN…")',
+              },
+              "manager/src/main/java/frb/axeron/manager/ui/screen/Activate.kt": {
+                  'ActivationLog.info("Waiting for the AxManager server to connect…")':
+                  'ActivationLog.info("Menunggu layanan DJALIMEN terhubung…")',
+                  'ActivationLog.success("AxManager server connected")':
+                  'ActivationLog.success("Layanan DJALIMEN terhubung")',
+                  'ActivationLog.error("No connection from the AxManager server after ${timeoutMs / 1000} s")':
+                  'ActivationLog.error("Layanan DJALIMEN belum terhubung setelah ${timeoutMs / 1000} detik")',
+              },
+          }
+          for relative_path, replacements in activation_patches.items():
+              target = Path(relative_path)
+              source = target.read_text(encoding="utf-8")
+              for old, new in replacements.items():
+                  if old not in source:
+                      raise SystemExit("Activation branding anchor missing in " + relative_path + ": " + old)
+                  source = source.replace(old, new, 1)
+              target.write_text(source, encoding="utf-8")
+              print("Applied safe DJALIMEN activation log branding:", relative_path)
 
           # Use the DJALIMEN mark in the permission bottom sheet instead of the legacy logo.
           permission_ui = Path("manager/src/main/java/frb/axeron/manager/ui/RequestPermissionActivity.kt")
@@ -433,9 +513,20 @@ jobs:
 
           adb_service = Path("adb/src/main/java/frb/axeron/adb/AdbPairingService.kt")
           adb_text = adb_service.read_text(encoding="utf-8")
+          # The Android Wireless Debugging "Paired devices" label comes from the
+          # comment appended to this app's ADB public key, not from app_name or its icon.
+          # Change the key comment while retaining the same key store and cryptographic key.
+          pairing_key_anchor = 'AdbKey(keyStore(), "axeron")'
+          if pairing_key_anchor not in adb_text:
+              raise SystemExit("ADB pairing key identity anchor missing; refusing an unsafe partial patch")
+          adb_text = adb_text.replace(pairing_key_anchor, 'AdbKey(keyStore(), "DJALIMEN")', 1)
+          if 'AdbKey(keyStore(), "axeron")' in adb_text:
+              raise SystemExit("Legacy ADB public-key identity remains in pairing service")
           if ".setSmallIcon(R.drawable.ic_axeron)" not in adb_text:
               raise SystemExit("ADB pairing notification icon anchor missing")
           adb_text = adb_text.replace(".setSmallIcon(R.drawable.ic_axeron)", ".setSmallIcon(R.drawable.ic_djalimen_notification)", 1)
+          if 'AdbKey(keyStore(), "DJALIMEN")' not in adb_text:
+              raise SystemExit("DJALIMEN ADB public-key identity was not applied")
           adb_service.write_text(adb_text, encoding="utf-8")
 
           watchdog = Path("manager/src/main/java/frb/axeron/manager/adb/BootWatchdogService.kt")
@@ -445,6 +536,97 @@ jobs:
           watchdog_text = watchdog_text.replace(".setSmallIcon(R.drawable.ic_axeron)", ".setSmallIcon(R.drawable.ic_djalimen_notification)", 1)
           watchdog.write_text(watchdog_text, encoding="utf-8")
           print("Replaced ADB pairing and boot-watchdog notification icons with DJALIMEN branding.")
+
+          # Final branding sweep for all user-visible Android strings and every app-owned icon use.
+          # Resource *keys*, package names, Binder/JNI descriptors and protocol identifiers are
+          # deliberately not renamed here; only XML values and drawable references are changed.
+          import os
+          brand_patterns = [
+              (r"(?i)\bAxManager\b", "DJALIMEN MANAGER"),
+              (r"(?i)\bAxeronSupport\b", "DJALIMEN Support"),
+              (r"(?i)\bAX-Permission\b", "DJALIMEN Permission"),
+              (r"(?i)\bAX-权限接管\b", "DJALIMEN 权限管理"),
+              (r"(?i)\bAX-Stealth Mode\b", "DJALIMEN Stealth Mode"),
+              (r"(?i)\bAx-Environment\b", "DJALIMEN Environment"),
+              (r"(?i)\bAxeron\b", "DJALIMEN"),
+          ]
+          for xml_file in res.glob("values*/strings.xml"):
+              xml_text = xml_file.read_text(encoding="utf-8")
+              # Replace only XML text nodes, never resource names or XML attributes.
+              def brand_text_node(match):
+                  value = match.group(1)
+                  for pattern, replacement in brand_patterns:
+                      value = re.sub(pattern, replacement, value)
+                  return ">" + value + "<"
+              updated_xml = re.sub(r">([^<>]*)<", brand_text_node, xml_text)
+              updated_xml = re.sub(
+                  r'(<string\s+name="app_name"[^>]*>)[^<]*(</string>)',
+                  r'\1DJALIMEN MANAGER\2',
+                  updated_xml
+              )
+              if updated_xml != xml_text:
+                  xml_file.write_text(updated_xml, encoding="utf-8")
+                  print("Completed visible-brand audit:", xml_file)
+
+          # A few UI surfaces and notification builders referenced the legacy drawable directly.
+          # The notification glyph is a monochrome vector, as required by Android's status bar.
+          for module, replacement in (
+              ("manager", "ic_djalimen_mark"),
+              ("adb", "ic_djalimen_notification"),
+          ):
+              module_root = Path(module) / "src" / "main" / "java"
+              for source_file in module_root.rglob("*"):
+                  if source_file.suffix not in (".kt", ".java"):
+                      continue
+                  source_text = source_file.read_text(encoding="utf-8")
+                  updated_source = source_text.replace("R.drawable.ic_axeron", "R.drawable." + replacement)
+                  if updated_source != source_text:
+                      source_file.write_text(updated_source, encoding="utf-8")
+                      print("Replaced legacy drawable reference:", source_file)
+
+          # Hard checks: app label, notification icons and visible strings must all be DJALIMEN.
+          app_name_values = []
+          for xml_file in res.glob("values*/strings.xml"):
+              xml_text = xml_file.read_text(encoding="utf-8")
+              for match in re.finditer(r'<string\s+name="app_name"[^>]*>(.*?)</string>', xml_text, re.S):
+                  app_name_values.append((str(xml_file), match.group(1)))
+              visible_text = re.sub(r"<[^>]+>", "", xml_text)
+              if re.search(r"(?i)AxManager|Axeron|AX-Permission|AX-权限接管|AX-Stealth Mode|Ax-Environment", visible_text):
+                  raise SystemExit("Legacy brand remains in visible strings: " + str(xml_file))
+          if not app_name_values or any(value != "DJALIMEN MANAGER" for _, value in app_name_values):
+              raise SystemExit("One or more localized launcher labels are not DJALIMEN MANAGER: " + repr(app_name_values))
+          for source_file in (
+              Path("adb/src/main/java/frb/axeron/adb/AdbPairingService.kt"),
+              Path("manager/src/main/java/frb/axeron/manager/adb/BootWatchdogService.kt"),
+          ):
+              source_text = source_file.read_text(encoding="utf-8")
+              if "setSmallIcon(R.drawable.ic_djalimen_notification)" not in source_text:
+                  raise SystemExit("DJALIMEN notification icon not configured: " + str(source_file))
+
+          # The ADB pairing notification belongs to the separate :adb module.
+          # The previous sweep only covered :manager resources, so its Indonesian
+          # notification title could still say "AxManager aktif".
+          adb_res = Path("adb/src/main/res")
+          for xml_file in adb_res.glob("values*/strings.xml"):
+              original = xml_file.read_text(encoding="utf-8")
+              updated = original
+              for pattern, replacement in brand_patterns:
+                  updated = re.sub(pattern, replacement, updated)
+              if re.search(r"(?i)AxManager|Axeron|AX-Permission|AX-Stealth Mode|Ax-Environment", updated):
+                  raise SystemExit("Legacy brand remains in ADB module string resources: " + str(xml_file))
+              if updated != original:
+                  xml_file.write_text(updated, encoding="utf-8")
+                  print("Rebranded ADB notification strings:", xml_file)
+
+          # Explicit notification-title assertions prevent this regression.
+          for resource_file in list(res.glob("values*/strings.xml")) + list(adb_res.glob("values*/strings.xml")):
+              xml_text = resource_file.read_text(encoding="utf-8")
+              if re.search(r">[^<>]*AxManager[^<>]*<", xml_text, re.I):
+                  raise SystemExit("Legacy AxManager text remains in notification/app resources: " + str(resource_file))
+          print("PASS: manager and ADB-module localized notification strings use DJALIMEN branding.")
+
+          print("PASS: all localized app labels, visible legacy-brand strings and notification icon references audited.")
+
 
           # DJALIMEN visual identity: vivid blue accent; all resource identifiers remain unchanged.
           colors = res / "values" / "colors.xml"

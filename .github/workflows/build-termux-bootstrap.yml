@@ -1,0 +1,140 @@
+name: Build DJALIMEN Termux Bootstrap
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/embedded-termux]
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap:
+    name: Bootstrap ${{ matrix.termux_arch }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - termux_arch: aarch64
+            android_abi: arm64-v8a
+          - termux_arch: arm
+            android_abi: armeabi-v7a
+          - termux_arch: x86_64
+            android_abi: x86_64
+
+    steps:
+      - name: Checkout DJALIMEN MANAGER
+        uses: actions/checkout@v4
+
+      - name: Install Docker
+        run: docker version
+
+      - name: Checkout Termux package build sources
+        run: |
+          git clone --depth 1 --branch infra-improvs https://github.com/agnostic-apollo/termux-packages.git termux-packages
+
+      - name: Set DJALIMEN package identity in bootstrap builder
+        working-directory: termux-packages
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("scripts/properties.sh")
+          s = p.read_text(encoding="utf-8")
+          old = 'TERMUX_APP__PACKAGE_NAME="com.termux"'
+          new = 'TERMUX_APP__PACKAGE_NAME="com.djalimen.manager"'
+          if s.count(old) != 1:
+              raise SystemExit("Expected one upstream Termux package identity setting")
+          p.write_text(s.replace(old, new, 1), encoding="utf-8")
+          print("Bootstrap prefix:", "/data/data/com.djalimen.manager/files/usr")
+          PY
+
+      - name: Pin verified Codeberg foot source archive checksum
+        working-directory: termux-packages
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("x11-packages/foot/build.sh")
+          s = p.read_text(encoding="utf-8")
+          old = "TERMUX_PKG_SHA256=02072b8f0aaf26907b6b02293c875539ce52fc59079344e7cf811ab03394cfa3"
+          new = "TERMUX_PKG_SHA256=b3fa774983abb5f95aecca4557d146091d8666bc65fb310d4d3e38327357ade9"
+          if old not in s:
+              raise SystemExit("Unexpected upstream foot checksum; refusing to patch")
+          p.write_text(s.replace(old, new, 1), encoding="utf-8")
+          print("Pinned foot 1.23.1 Codeberg archive SHA-256 to checksum observed from HTTPS download in all three failed ABI jobs.")
+          PY
+
+      - name: Disable optional Tcl extension during cross-compiled bootstrap
+        working-directory: termux-packages
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("packages/libsqlite/build.sh")
+          s = p.read_text(encoding="utf-8")
+          replacements = [
+              ('TERMUX_PKG_BUILD_DEPENDS="tcl"\n', ''),
+              ('TERMUX_PKG_DEPENDS="zlib"', 'TERMUX_PKG_DEPENDS="zlib, readline"'),
+              ('--with-tcl=$TERMUX_PREFIX/lib\n--with-tclsh=$(command -v tclsh)\n', ''),
+              ('\texport TCL_CONFIG_SH="$TERMUX_PREFIX/lib/tclConfig.sh"\n\texport TCLLIBDIR="$TERMUX_PREFIX/lib"\n', ''),
+          ]
+          for old, new in replacements:
+              if s.count(old) != 1:
+                  raise SystemExit(f"Expected exactly one libsqlite setting/block: {old!r}")
+              s = s.replace(old, new, 1)
+          start = s.index("termux_step_make_install() {")
+          end = s.index("\n}", start) + 2
+          old_function = s[start:end]
+          if old_function.count("make tclextension-install") != 1:
+              raise SystemExit("Expected one optional Tcl extension install function")
+          new_function = "termux_step_make() {\n\tmake sqlite3 libsqlite3.so\n}\n\ntermux_step_make_install() {\n\t# SQLite's generated install target may pull in its optional host-Tcl extension.\n\t# Remove only Tcl install prerequisites; keep the CLI and shared library install.\n\tif grep -q '^install:.*install-tcl' Makefile; then\n\t\tsed -i '/^install:/s/[[:space:]]\\+install-tcl[^[:space:]]*//g' Makefile\n\tfi\n\tif grep -q '^install:.*install-tcl' Makefile; then\n\t\techo 'Tcl install prerequisite remains in SQLite Makefile' >&2\n\t\texit 1\n\tfi\n\t# Override SQLite's configure-time Tcl detection: Tcl is a host-only optional extension, not part of the Android bootstrap.\n\tmake install-binaries install-headers INSTALL.strip=/usr/bin/install\n}"
+          s = s[:start] + new_function + s[end:]
+          p.write_text(s, encoding="utf-8")
+          print("libsqlite core targets only (sqlite3 and libsqlite3.so); Tcl extension excluded")
+          PY
+
+      - name: Build architecture-specific Termux bootstrap
+        working-directory: termux-packages
+        env:
+          CI: "true"
+        run: |
+          chmod +x scripts/run-docker.sh scripts/build-bootstraps.sh scripts/setup-android-sdk.sh
+          # Package identity changes require a clean package build cache.
+          ./scripts/run-docker.sh ./clean.sh
+          # The Termux builder image does not ship with the pinned Android NDK.
+          # Install SDK/NDK inside the persistent builder container before compiling.
+          ./scripts/run-docker.sh ./scripts/setup-android-sdk.sh
+          # The builder image uses Ubuntu resolute, which does not publish python3.12.
+          # Build the exact CPython 3.12 host interpreter from the official python.org
+          # source release; verify its published SHA-256 before compiling.
+          ./scripts/run-docker.sh sudo apt-get update
+          # Keep the builder image's pinned/held toolchain packages unchanged.
+          # Install only missing build dependencies; never upgrade held packages.
+          ./scripts/run-docker.sh sudo apt-get install -y --no-upgrade zlib1g-dev libncurses-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev libbz2-dev liblzma-dev uuid-dev tk-dev
+          ./scripts/run-docker.sh bash -lc 'set -euo pipefail
+            cd /tmp
+            curl -fL --retry 3 https://www.python.org/ftp/python/3.12.11/Python-3.12.11.tar.xz -o Python-3.12.11.tar.xz
+            echo "c30bb24b7f1e9a19b11b55a546434f74e739bb4c271a3e3a80ff4380d49f7adb  Python-3.12.11.tar.xz" | sha256sum -c -
+            tar -xf Python-3.12.11.tar.xz
+            cd Python-3.12.11
+            ./configure --prefix=/usr/local --with-ensurepip=install
+            make -j2
+            sudo make altinstall
+            /usr/local/bin/python3.12 --version
+          '
+          ./scripts/run-docker.sh ./scripts/build-bootstraps.sh --architectures "${{ matrix.termux_arch }}" --no-build-unneeded-subpackages
+
+      - name: Verify bootstrap archive
+        working-directory: termux-packages
+        run: |
+          test -s "bootstrap-${{ matrix.termux_arch }}.zip"
+          unzip -t "bootstrap-${{ matrix.termux_arch }}.zip"
+          echo "Verified bootstrap for ${{ matrix.android_abi }}"
+
+      - name: Upload DJALIMEN bootstrap
+        uses: actions/upload-artifact@v4
+        with:
+          name: djalimen-termux-bootstrap-${{ matrix.android_abi }}
+          path: termux-packages/bootstrap-${{ matrix.termux_arch }}.zip
+          if-no-files-found: error
+          retention-days: 14

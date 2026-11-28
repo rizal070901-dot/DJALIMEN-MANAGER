@@ -964,6 +964,161 @@ jobs:
           print("Verified Indonesian visible labels and replaced old notification/quick-settings glyphs.")
           PY
 
+      - name: Full DJALIMEN source and namespace migration
+        working-directory: upstream
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import os, re, shutil
+
+          SKIP_DIRS = {".git", ".gradle", "build", ".idea", ".kotlin", "node_modules", "dist"}
+          LEGAL_FILES = {"LICENSE", "LICENSE.txt", "LICENSE.md", "NOTICE", "NOTICE.txt", "NOTICE.md", "COPYING"}
+          LEGAL_LINE = re.compile(r"copyright|SPDX-License-Identifier|licensed under|Apache License|all rights reserved", re.I)
+          replacements = [
+              ("frb.axeron", "com.djalimen"),
+              ("frb/axeron", "com/djalimen"),
+              ("AX-Permission", "DJALIMEN Permission"),
+              ("AX-Stealth", "DJALIMEN Privacy"),
+              ("Ax-Environment", "DJALIMEN Environment"),
+              ("AxManager", "DjalimenManager"),
+              ("AXMANAGER", "DJALIMENMANAGER"),
+              ("axmanager", "djalimenmanager"),
+              ("Axeron", "Djalimen"),
+              ("AXERON", "DJALIMEN"),
+              ("axeron", "djalimen"),
+          ]
+
+          def transform_line(line):
+              if LEGAL_LINE.search(line):
+                  return line
+              for before, after in replacements:
+                  line = line.replace(before, after)
+              line = re.sub(r"\\bAx(?=[A-Z])", "Djalimen", line)
+              line = line.replace("Open-source foundation: DjalimenManager by FahrezRB",
+                                  "DJALIMEN MANAGER — community-maintained distribution")
+              return line
+
+          def transform_text(value):
+              return "".join(transform_line(line) for line in value.splitlines(keepends=True))
+
+          # Rename code, resources, scripts, manifests, build files, and documentation.
+          changed = []
+          for root, dirs, files in os.walk("."):
+              dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+              for filename in files:
+                  path = Path(root) / filename
+                  if filename in LEGAL_FILES or path.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp", ".so", ".jar", ".aar", ".class", ".dex", ".keystore", ".ttf", ".otf"}:
+                      continue
+                  try:
+                      original = path.read_text(encoding="utf-8")
+                  except (UnicodeDecodeError, OSError):
+                      continue
+                  updated = transform_text(original)
+                  if updated != original:
+                      path.write_text(updated, encoding="utf-8")
+                      changed.append(str(path))
+
+          def merge_move(src, dst):
+              if not src.exists():
+                  return
+              if src.is_dir():
+                  dst.mkdir(parents=True, exist_ok=True)
+                  for child in list(src.iterdir()):
+                      merge_move(child, dst / child.name)
+                  src.rmdir()
+              else:
+                  dst.parent.mkdir(parents=True, exist_ok=True)
+                  if dst.exists():
+                      if dst.read_bytes() != src.read_bytes():
+                          raise SystemExit("Conflicting renamed source file: " + str(dst))
+                      src.unlink()
+                  else:
+                      shutil.move(str(src), str(dst))
+
+          # Rename source/package directories, including the nested API submodule.
+          for root, dirs, files in os.walk(".", topdown=False):
+              base = Path(root)
+              if any(part in SKIP_DIRS for part in base.parts):
+                  continue
+              for name in list(dirs):
+                  if name in SKIP_DIRS:
+                      continue
+                  src = base / name
+                  renamed = name
+                  for before, after in replacements:
+                      renamed = renamed.replace(before, after)
+                  renamed = re.sub(r"^Ax(?=[A-Z])", "Djalimen", renamed)
+                  if renamed != name:
+                      merge_move(src, base / renamed)
+
+          # Move every remaining frb/axeron package root to the DJALIMEN namespace.
+          for root, dirs, files in os.walk(".", topdown=False):
+              base = Path(root)
+              if any(part in SKIP_DIRS for part in base.parts):
+                  continue
+              if base.name == "axeron" and base.parent.name == "frb":
+                  old_parent = base.parent
+                  target = old_parent.parent / "com" / "djalimen"
+                  merge_move(base, target)
+                  try:
+                      old_parent.rmdir()
+                  except OSError:
+                      pass
+
+          # Rename source filenames after package movement.
+          for root, dirs, files in os.walk(".", topdown=False):
+              base = Path(root)
+              if any(part in SKIP_DIRS for part in base.parts):
+                  continue
+              for filename in list(files):
+                  renamed = filename
+                  for before, after in replacements:
+                      renamed = renamed.replace(before, after)
+                  renamed = re.sub(r"^Ax(?=[A-Z])", "Djalimen", renamed)
+                  if renamed != filename:
+                      merge_move(base / filename, base / renamed)
+
+          # Ensure the native app_process entry point and shrinker rule use the renamed class.
+          starter = Path("server/src/main/cpp/starter.cpp")
+          if starter.exists():
+              content = starter.read_text(encoding="utf-8")
+              if "com.djalimen.server.DjalimenService" not in content:
+                  content = content.replace("com.djalimen.server.AxeronService",
+                                            "com.djalimen.server.DjalimenService")
+                  starter.write_text(content, encoding="utf-8")
+          keep = Path("server/consumer-rules.pro")
+          if keep.exists():
+              content = keep.read_text(encoding="utf-8").replace(
+                  "com.djalimen.server.AxeronService", "com.djalimen.server.DjalimenService")
+              if "com.djalimen.server.DjalimenService" not in content:
+                  content += "\n-keep class com.djalimen.server.DjalimenService { *; }\n"
+              keep.write_text(content, encoding="utf-8")
+
+          # Final source audit: only legal/license attribution files may retain upstream names.
+          legacy = re.compile(r"AxManager|Axeron|AXERON|axeron|frb\\.axeron|frb/axeron|\\bAx[A-Z]")
+          hits = []
+          for root, dirs, files in os.walk("."):
+              dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+              for filename in files:
+                  path = Path(root) / filename
+                  if filename in LEGAL_FILES:
+                      continue
+                  try:
+                      content = path.read_text(encoding="utf-8")
+                  except (UnicodeDecodeError, OSError):
+                      continue
+                  for number, line in enumerate(content.splitlines(), 1):
+                      if LEGAL_LINE.search(line):
+                          continue
+                      if legacy.search(line):
+                          hits.append(f"{path}:{number}:{line.strip()[:180]}")
+          if hits:
+              raise SystemExit("Legacy source branding remains:\\n" + "\\n".join(hits[:80]))
+          print("Full DJALIMEN namespace/source rename completed across " + str(len(changed)) + " text files.")
+          print("All frb.axeron package roots and Axeron/AxManager identifiers were migrated.")
+          print("Original LICENSE/NOTICE and copyright attribution were preserved.")
+          PY
+
       - name: Build debug APK
         working-directory: upstream
         run: |

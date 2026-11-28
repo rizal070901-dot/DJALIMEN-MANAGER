@@ -166,6 +166,12 @@ jobs:
 
           home_ui = Path("manager/src/main/java/frb/axeron/manager/ui/screen/Home.kt")
           s = home_ui.read_text(encoding="utf-8")
+          for required_import in (
+              "import androidx.compose.foundation.BorderStroke",
+              "import androidx.compose.foundation.shape.RoundedCornerShape",
+          ):
+              if required_import not in s:
+                  s = s.replace("import androidx.compose.foundation.background", "import androidx.compose.foundation.background\n" + required_import, 1)
           # Keep real build metadata in the app bar; remove the scrolling banner that overlapped the title.
           version_pattern = r'Text\(\s*text = "v\$\{BuildConfig\.VERSION_NAME\} \(\$\{BuildConfig\.VERSION_CODE\}\)",.*?\n\s*\)'
           version_label = """Text(
@@ -223,7 +229,7 @@ jobs:
                             }
                         }
                     }
-                    Text("SYSTEM READY  •  DJM v${{BuildConfig.VERSION_NAME}", color = Color(0xFF6D91BE), fontFamily = FontFamily.Monospace, fontSize = 9.sp, letterSpacing = 0.5.sp)
+                    Text("SYSTEM READY  •  DJM v${BuildConfig.VERSION_NAME}", color = Color(0xFF6D91BE), fontFamily = FontFamily.Monospace, fontSize = 9.sp, letterSpacing = 0.5.sp)
                 }
             }
 

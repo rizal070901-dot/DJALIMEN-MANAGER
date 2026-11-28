@@ -444,6 +444,452 @@ jobs:
           adb_text = adb_text.replace(".setSmallIcon(R.drawable.ic_axeron)", ".setSmallIcon(R.drawable.ic_djalimen_notification)", 1)
           adb_service.write_text(adb_text, encoding="utf-8")
 
+          name: Build DJALIMEN Manager APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout DJALIMEN MANAGER
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install required Android SDK packages
+        run: |
+          echo "ANDROID_HOME=${ANDROID_HOME:-$ANDROID_SDK_ROOT}" >> "$GITHUB_ENV"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platform-tools" "platforms;android-36" "build-tools;36.0.0" "ndk;29.0.14206865"
+
+      - name: Configure CI debug signing
+        working-directory: upstream
+        run: |
+          # The upstream signing keystore is private; use the standard debug keystore in CI.
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("manager/build.gradle.kts")
+          s = p.read_text()
+          old = '        signingConfig = signingConfigs.getByName("frb-project")'
+          if old not in s:
+              raise SystemExit("Expected upstream debug signing config was not found")
+          p.write_text(s.replace(old, '        // CI: use standard Android debug signing config', 1))
+          PY
+
+      - name: Apply DJALIMEN app branding
+        working-directory: upstream
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          # Rebrand user-facing native libaxeron.so diagnostics at source level.
+          # Keep protocol identifiers (AXERON env vars, axeron_server, JNI/class paths,
+          # executable name and library path) unchanged because scripts/services depend on them.
+          native_starter = Path("server/src/main/cpp/starter.cpp")
+          native_source = native_starter.read_text(encoding="utf-8")
+          native_replacements = {
+              'printf("info: axeron_server pid is %d\\n", pid);': 'printf("info: DJALIMEN native service pid is %d\\n", pid);',
+              'printf("info: axeron_starter exit with 0\\n");': 'printf("info: DJALIMEN native starter exit with 0\\n");',
+              'fatal: run AxManager from non root nor adb user (uid=%d).\\n': 'fatal: run DJALIMEN MANAGER from non root nor adb user (uid=%d).\\n',
+              'fatal: can\'t kill %d, please try to stop existing AxManager from app first.\\n': 'fatal: can\'t kill %d, please stop the existing DJALIMEN MANAGER service from the app first.\\n',
+          }
+          for old, new in native_replacements.items():
+              if old not in native_source:
+                  raise SystemExit("Native branding target missing: " + old)
+              native_source = native_source.replace(old, new, 1)
+          native_starter.write_text(native_source, encoding="utf-8")
+          print("Applied safe DJALIMEN branding to native starter diagnostics; internal ABI/protocol names preserved.")
+
+          # Change only user-facing string resources. Never rename style/theme/resource identifiers.
+          res = Path("manager/src/main/res")
+          changed = []
+          for p in res.glob("values*/strings.xml"):
+              s = p.read_text(encoding="utf-8")
+              updated = s.replace("AxManager", "DJALIMEN MANAGER")
+              # Consistent DJALIMEN naming for help/support labels in English and Indonesian.
+              if p.name == "strings.xml":
+                  updated = updated.replace('<string name="support_me">Support Me</string>', '<string name="support_me">Support DJALIMEN</string>')
+                  updated = updated.replace('<string name="support_me">Dukung Saya</string>', '<string name="support_me">Dukung DJALIMEN</string>')
+                  updated = updated.replace('<string name="learn_more">Learn DJALIMEN MANAGER</string>', '<string name="learn_more">Learn DJALIMEN MANAGER</string>')
+                  updated = updated.replace('<string name="learn_more">Pelajari DJALIMEN MANAGER</string>', '<string name="learn_more">Pelajari DJALIMEN MANAGER</string>')
+              if updated != s:
+                  p.write_text(updated, encoding="utf-8")
+                  changed.append(str(p))
+
+          strings = res / "values" / "strings.xml"
+          s = strings.read_text(encoding="utf-8")
+          if '<string name="app_name">DJALIMEN MANAGER</string>' not in s:
+              raise SystemExit("Could not verify launcher app_name")
+
+          settings = Path("settings.gradle.kts")
+          s = settings.read_text(encoding="utf-8")
+          s = re.sub(r'rootProject\.name\s*=\s*"[^"]+"', 'rootProject.name = "DJALIMEN MANAGER"', s, count=1)
+          settings.write_text(s, encoding="utf-8")
+
+          gradle = Path("manager/build.gradle.kts")
+          s = gradle.read_text(encoding="utf-8")
+          s = s.replace('"AxManager_v', '"DJALIMEN-MANAGER_v')
+          gradle.write_text(s, encoding="utf-8")
+
+          print("Updated string resources:", *changed, sep="\\n - ")
+          print("Verified launcher label: DJALIMEN MANAGER")
+
+          # Replace branding only in XML element text, never in resource names/keys.
+          # R.string identifiers are part of the compiled API used by Kotlin source.
+          import re
+          for p in res.glob("values*/strings.xml"):
+              s = p.read_text(encoding="utf-8")
+              def rebrand_text(match):
+                  value = match.group(1)
+                  value = value.replace("Axeron", "DJALIMEN").replace("AXERON", "DJALIMEN").replace("axeron", "DJALIMEN")
+                  return ">" + value + "<"
+              updated = re.sub(r">([^<>]+)<", rebrand_text, s)
+              if updated != s:
+                  p.write_text(updated, encoding="utf-8")
+                  print("Rebranded visible Axeron string values while preserving resource keys:", p)
+
+          # Use the DJALIMEN mark in the permission bottom sheet instead of the legacy logo.
+          permission_ui = Path("manager/src/main/java/frb/axeron/manager/ui/RequestPermissionActivity.kt")
+          permission_text = permission_ui.read_text(encoding="utf-8")
+          old_permission_icon = "R.drawable.ic_axeron"
+          if old_permission_icon not in permission_text:
+              raise SystemExit("Permission dialog legacy icon anchor missing")
+          permission_text = permission_text.replace(old_permission_icon, "R.drawable.ic_djalimen_mark", 1)
+          permission_ui.write_text(permission_text, encoding="utf-8")
+          print("Rebranded permission dialog title, descriptions and icon for DJALIMEN.")
+          # Rebrand the About / Support surfaces while preserving upstream attribution and behavior.
+          settings_ui = Path("manager/src/main/java/frb/axeron/manager/ui/screen/Settings.kt")
+          s = settings_ui.read_text(encoding="utf-8")
+          replacements = {
+              'val githubUrl = "https://github.com/fahrez182"': 'val githubUrl = "https://github.com/rizal070901-dot/DJALIMEN-MANAGER"',
+              'val sociabuzzUrl = "https://sociabuzz.com/fahrezone/tribe"': 'val sociabuzzUrl = "https://github.com/rizal070901-dot/DJALIMEN-MANAGER"',
+              'text = "fahrez182 (FahrezONE)"': 'text = "DJALIMEN CHANNEL"',
+              'text = "“Everything is an Idea”"': 'text = "“Built for performance. Powered by the community.”"',
+          }
+          for old, new in replacements.items():
+              if old not in s:
+                  raise SystemExit("Settings About patch target missing: " + old)
+              s = s.replace(old, new, 1)
+          credit = '                Text(\n                    text = stringResource(R.string.developer_and_maintainer),'
+          if credit not in s:
+              raise SystemExit("About attribution insertion point missing")
+          s = s.replace(credit, '                Text(\n                    text = "Open-source foundation: AxManager by FahrezRB",\n                    fontSize = 12.sp,\n                    color = MaterialTheme.colorScheme.onSurfaceVariant\n                )\n\n' + credit, 1)
+          # Keep the original contributor portrait and show explicit upstream credit below the DJALIMEN title.
+
+          # Rebrand the existing support label only. Keep the upstream button layout and click behavior intact.
+          old_support = 'Text(stringResource(R.string.support_or_donate))'
+          if old_support not in s:
+              raise SystemExit("Upstream support button expression not found")
+          s = s.replace(old_support, 'Text("Dukung DJALIMEN di GitHub")', 1)
+          settings_ui.write_text(s, encoding="utf-8")
+          # Generate a dedicated YouTube vector icon for the About action.
+          youtube_icon = Path("manager/src/main/res/drawable/ic_youtube.xml")
+          youtube_icon.write_text("""<?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="24dp" android:height="24dp"
+              android:viewportWidth="24" android:viewportHeight="24">
+              <path android:fillColor="#FFFFFFFF"
+                  android:pathData="M23.5,6.2c-0.3,-1.1 -1.2,-2 -2.3,-2.3C19.2,3.4 12,3.4 12,3.4s-7.2,0 -9.2,0.5C1.7,4.2 0.8,5.1 0.5,6.2 0,8.2 0,12 0,12s0,3.8 0.5,5.8c0.3,1.1 1.2,2 2.3,2.3 2,0.5 9.2,0.5 9.2,0.5s7.2,0 9.2,-0.5c1.1,-0.3 2,-1.2 2.3,-2.3C24,15.8 24,12 24,12s0,-3.8 -0.5,-5.8z"/>
+              <path android:fillColor="#FF080F1D" android:pathData="M9.6,15.8L9.6,8.2 16,12z"/>
+          </vector>
+          """, encoding="utf-8")
+
+
+          home_ui = Path("manager/src/main/java/frb/axeron/manager/ui/screen/Home.kt")
+          s = home_ui.read_text(encoding="utf-8")
+          for required_import in (
+              "import androidx.compose.foundation.BorderStroke",
+              "import androidx.compose.foundation.shape.RoundedCornerShape",
+          ):
+              if required_import not in s:
+                  s = s.replace("import androidx.compose.foundation.background", "import androidx.compose.foundation.background\n" + required_import, 1)
+          # Keep real build metadata in the app bar; remove the scrolling banner that overlapped the title.
+          version_pattern = r'Text\(\s*text = "v\$\{BuildConfig\.VERSION_NAME\} \(\$\{BuildConfig\.VERSION_CODE\}\)",.*?\n\s*\)'
+          version_label = """Text(
+                                text = "DJM BUILD  •  v${BuildConfig.VERSION_NAME}  •  #${BuildConfig.VERSION_CODE}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFF79A9D8),
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                            )"""
+          s, replacements = re.subn(version_pattern, version_label, s, count=1, flags=re.DOTALL)
+          if replacements != 1:
+              raise SystemExit("Home version label target not found; refusing to alter unrelated UI.")
+          s = s.replace('https://github.com/fahrez182/AxManager/issues', 'https://github.com/rizal070901-dot/DJALIMEN-MANAGER/issues')
+          s = s.replace('https://github.com/fahrez182/AxManager', 'https://github.com/rizal070901-dot/DJALIMEN-MANAGER')
+          s = s.replace('https://fahrez182.github.io/AxManager', 'https://github.com/rizal070901-dot/DJALIMEN-MANAGER#readme')
+          # Give Home a distinct DJALIMEN dashboard identity without touching feature logic.
+          home_anchor = """            // Status and the plugin/privilege counts read as one card: square inner edges,"""
+          home_hero = """            // DJALIMEN Command Deck: a distinct editorial dashboard identity.
+            Surface(
+                color = Color(0xFF0B1222),
+                shape = RoundedCornerShape(topStart = 30.dp, topEnd = 12.dp, bottomStart = 12.dp, bottomEnd = 30.dp),
+                modifier = Modifier.fillMaxWidth().border(
+                    1.dp, Brush.linearGradient(listOf(Color(0xFF4B8DFF), Color(0xFF36D6B0), Color(0xFF263B64))),
+                    RoundedCornerShape(topStart = 30.dp, topEnd = 12.dp, bottomStart = 12.dp, bottomEnd = 30.dp)
+                )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .background(Brush.linearGradient(listOf(Color(0xFF182B4B), Color(0xFF101B31), Color(0xFF0B1222))))
+                        .padding(horizontal = 19.dp, vertical = 18.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(color = Color(0xFF2C5C9D), shape = RoundedCornerShape(10.dp)) {
+                            Text("DJM", modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace)
+                        }
+                        Spacer(Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text("DJALIMEN", color = Color(0xFFF3F7FF), fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.4.sp)
+                            Text("COMMAND DECK  /  ANDROID", color = Color(0xFF8EACD6), fontSize = 9.sp, fontFamily = FontFamily.Monospace, letterSpacing = 0.7.sp)
+                        }
+                        Surface(color = if (isRunning) Color(0xFF164B43) else Color(0xFF3A3040), shape = RoundedCornerShape(8.dp)) {
+                            Text(if (isRunning) "ACTIVE" else "IDLE", modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp), color = if (isRunning) Color(0xFF7CF2CD) else Color(0xFFFFC2A8), fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                        }
+                    }
+                    HorizontalDivider(color = Color(0xFF42618D).copy(alpha = 0.55f))
+                    Text("KENDALI PENUH. SATU DASHBOARD.", color = Color(0xFF8AB8FF), fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp)
+                    Text("Perangkat Android\\nada dalam kendali.", color = Color(0xFFF2F6FF), fontSize = 25.sp, lineHeight = 29.sp, fontWeight = FontWeight.ExtraBold)
+                    Text("Kelola akses sistem, modul, dan pemantauan perangkat melalui satu pusat kendali DJALIMEN.", color = Color(0xFFB1C2DC), fontSize = 12.sp, lineHeight = 18.sp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        listOf("01  MODULES", "02  ROOT", "03  DEVICE").forEach { item ->
+                            Surface(color = Color(0xFF1B2D49), shape = RoundedCornerShape(7.dp), border = BorderStroke(1.dp, Color(0xFF39577F))) {
+                                Text(item, modifier = Modifier.padding(horizontal = 9.dp, vertical = 7.dp), color = Color(0xFFB9D5FF), fontFamily = FontFamily.Monospace, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                    Text("SYSTEM READY  •  DJM v${BuildConfig.VERSION_NAME}", color = Color(0xFF6D91BE), fontFamily = FontFamily.Monospace, fontSize = 9.sp, letterSpacing = 0.5.sp)
+                }
+            }
+
+            // Native activation, privilege, module, device and support controls remain below.
+            // Their actions and state are preserved while the Home visual identity is replaced.
+            // Status and the plugin/privilege counts read as one card: square inner edges,""";
+          if home_anchor not in s:
+              raise SystemExit("Home dashboard insertion anchor missing")
+          s = s.replace(home_anchor, home_hero, 1)
+          # Replace report-issue controls with a direct DJALIMEN YouTube link.
+          s = s.replace('val telegramUrl = "https://t.me/axeron_manager"', 'val youtubeUrl = "https://youtube.com/@djalimenchannel?si=-E0j7Hh9ryEFMljD"')
+          s = s.replace('title = stringResource(R.string.report_issue),', 'title = "YouTube DJALIMEN",')
+          s = s.replace('message = "\${stringResource(R.string.report_issue_msg)} \${stringResource(R.string.report_issue_msg2)}",', 'message = "Kunjungi kanal YouTube resmi DJALIMEN.",')
+          # Locate the report actions by their stable first callback, then replace the
+          # complete trailing-actions lambda. This avoids brittle whitespace/full-block matching.
+          action_start = s.find('            IconButton(onClick = { uriHandler.openUri(githubIssueUrl) })')
+          if action_start < 0:
+              raise SystemExit("Report issue action anchor not found in Home.kt")
+          action_end = s.find("\n        }\n    }\n}", action_start)
+          if action_end < 0:
+              raise SystemExit("Could not locate end of report issue actions")
+          new_youtube_action = """            IconButton(onClick = { uriHandler.openUri(youtubeUrl) }) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_youtube),
+                    contentDescription = "Buka YouTube DJALIMEN",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }"""
+          s = s[:action_start] + new_youtube_action + s[action_end:]
+          # Refine the Home activation/status card using whitespace-tolerant source matching.
+          import re
+          status_pattern = r'(?s)(val containerColor by animateColorAsState\(\s*targetValue = when \{).*?(\n\s*\},\s*\n\s*animationSpec = tween\(400\),)'
+          status_match = re.search(status_pattern, s)
+          if not status_match:
+              raise SystemExit("Could not locate Home activation status color selector")
+          status_block = status_match.group(0)
+          status_block = re.sub(r'isNeedExtraStep -> MaterialTheme\.colorScheme\.errorContainer', 'isNeedExtraStep -> Color(0xFF302719)', status_block, count=1)
+          status_block = re.sub(r'else -> MaterialTheme\.colorScheme\.errorContainer', 'else -> Color(0xFF101F38)', status_block, count=1)
+          status_block = re.sub(r'isRunning -> MaterialTheme\.colorScheme\.primaryContainer', 'isRunning -> Color(0xFF142B49)', status_block, count=1)
+          s = s[:status_match.start()] + status_block + s[status_match.end():]
+          s = s.replace(
+              'text = stringResource(R.string.home_badge_stopped),\n                                    container = colors.error,\n                                    content = colors.onError',
+              'text = "PERLU AKTIVASI",\n                                    container = Color(0xFF244B78),\n                                    content = Color(0xFFD7E9FF)',
+              1
+          )
+          # Replace the stopped-state X watermark with the DJALIMEN brand mark.
+          # This is presentation-only; activation state and click behavior stay unchanged.
+          if 'else -> rememberVectorPainter(Icons.Outlined.Cancel)' not in s:
+              raise SystemExit("Activation watermark anchor missing")
+          s = s.replace(
+              'else -> rememberVectorPainter(Icons.Outlined.Cancel)',
+              'else -> painterResource(R.drawable.ic_djalimen_mark)',
+              1
+          )
+          # The running state uses the original Axeron logo as a separate resource.
+          # Replace that branch too; otherwise the old logo remains visible while active.
+          running_mark = 'isRunning -> painterResource(R.drawable.ic_axeron)'
+          if running_mark not in s:
+              raise SystemExit("Running-state Axeron watermark target missing")
+          s = s.replace(
+              running_mark,
+              'isRunning -> painterResource(R.drawable.ic_djalimen_mark)',
+              1
+          )
+          home_ui.write_text(s, encoding="utf-8")
+
+          # The DJALIMEN cyber dashboard is applied once above; do not run a second
+          # marker-based rewrite, which used an incompatible boundary and aborted branding.
+
+          # Brand the plugin manager's visible console output without changing internal process/env names.
+          igniter = Path("reignite/src/main/java/frb/axeron/reignite/Igniter.kt")
+          igniter_text = igniter.read_text(encoding="utf-8")
+          if 'AXERON Plugin Manager ($VERSION)' not in igniter_text:
+              raise SystemExit("Plugin manager log branding anchor missing")
+          igniter_text = igniter_text.replace(
+              'AXERON Plugin Manager ($VERSION)',
+              'DJALIMEN Plugin Manager ($VERSION)'
+          )
+          igniter.write_text(igniter_text, encoding="utf-8")
+
+          # A clean, original DJALIMEN monogram for the activation-card watermark.
+          mark = res / "drawable" / "ic_djalimen_mark.xml"
+          mark.parent.mkdir(parents=True, exist_ok=True)
+          mark.write_text("""<?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="180dp" android:height="180dp"
+              android:viewportWidth="180" android:viewportHeight="180">
+              <path android:fillColor="#FF65F0C1"
+                  android:pathData="M90,12 C133,12 168,47 168,90 C168,133 133,168 90,168 C47,168 12,133 12,90 C12,47 47,12 90,12 Z M90,28 C56,28 28,56 28,90 C28,124 56,152 90,152 C124,152 152,124 152,90 C152,56 124,28 90,28 Z"
+                  android:fillType="evenOdd"/>
+              <path android:fillColor="#FF65F0C1"
+                  android:pathData="M65,49 L91,49 C117,49 134,65 134,90 C134,115 117,131 91,131 L65,131 Z M83,66 L83,114 L91,114 C106,114 116,105 116,90 C116,75 106,66 91,66 Z"
+                  android:fillType="evenOdd"/>
+              <path android:fillColor="#FF0A1920"
+                  android:pathData="M92,75 L105,75 L105,86 L116,86 L116,99 L105,99 L105,110 L92,110 Z"/>
+          </vector>
+          """, encoding="utf-8")
+          print("Rebranded plugin console output and activation watermark to DJALIMEN.")
+
+
+          # Present legacy environment identifiers with DJALIMEN labels only.
+          # The real environment keys and values remain untouched for service compatibility.
+          editor_ui = Path("manager/src/main/java/frb/axeron/manager/ui/screen/SettingsEditor.kt")
+          editor_text = editor_ui.read_text(encoding="utf-8")
+          old_display = "highlightMatches(entry.keyDisplay, query, matchStyle)"
+          new_display = 'highlightMatches(entry.keyDisplay.replace(Regex("(?i)axeron"), "DJALIMEN"), query, matchStyle)'
+          if old_display not in editor_text:
+              raise SystemExit("Settings editor display-key anchor missing")
+          editor_text = editor_text.replace(old_display, new_display)
+          # Environment values such as /data/.../axeron/bin are presentation-only aliases.
+          # Keep the real filesystem paths and service protocol untouched.
+          env_value_anchor = "            text = text,"
+          env_value_display = '            text = text.replace(Regex("(?i)axeron"), "djalimen"),'
+          if env_value_anchor not in editor_text:
+              raise SystemExit("Settings editor environment-value display anchor missing")
+          editor_text = editor_text.replace(env_value_anchor, env_value_display, 1)
+          editor_ui.write_text(editor_text, encoding="utf-8")
+          print("Applied DJALIMEN display aliases to legacy environment keys and values; backend identifiers preserved.")
+          
+          # Complete the remaining user-visible identity cleanup without changing Binder/JNI
+          # package contracts or the legacy environment protocol consumed by existing plugins.
+          # The old strings are retained only as compatibility internals where required.
+          env_signature = "private fun EnvValueText(text: String) {"
+          env_start = editor_text.find(env_signature)
+          if env_start < 0:
+              raise SystemExit("EnvValueText function anchor missing")
+          env_text_pos = editor_text.find("text =", env_start + len(env_signature))
+          if env_text_pos < 0:
+              raise SystemExit("EnvValueText value renderer missing")
+          env_line_end = editor_text.find("\n", env_text_pos)
+          if env_line_end < 0:
+              raise SystemExit("EnvValueText renderer line end missing")
+          editor_text = (
+              editor_text[:env_start]
+              + env_signature + '\n    val displayText = text.replace(Regex("(?i)axeron"), "djalimen")'
+              + editor_text[env_start + len(env_signature):env_text_pos]
+              + "text = displayText,"
+              + editor_text[env_line_end:]
+          )
+          editor_ui.write_text(editor_text, encoding="utf-8")
+
+          # Give newly paired wireless-debugging clients the DJALIMEN label.
+          pairing = Path("adb/src/main/java/frb/axeron/adb/AdbPairingService.kt")
+          pairing_text = pairing.read_text(encoding="utf-8")
+          if 'AdbKey(keyStore(), "axeron")' not in pairing_text:
+              raise SystemExit("ADB pairing key-label anchor missing")
+          pairing_text = pairing_text.replace('AdbKey(keyStore(), "axeron")', 'AdbKey(keyStore(), "djalimen")', 1)
+          pairing.write_text(pairing_text, encoding="utf-8")
+
+          # The starter is an executable packaged in the nativeLibraryDir, not a JNI ABI.
+          # Rename the executable filename and every launcher/reference as one atomic source patch.
+          cmake = Path("server/src/main/cpp/CMakeLists.txt")
+          cmake_text = cmake.read_text(encoding="utf-8")
+          if "add_executable(libaxeron.so" not in cmake_text:
+              raise SystemExit("Native starter CMake target anchor missing")
+          cmake_text = cmake_text.replace("libaxeron.so", "libdjalimen.so")
+          cmake.write_text(cmake_text, encoding="utf-8")
+
+          # Update all textual launchers/docs/tests to use the new starter filename and process label.
+          import os
+          for root, dirs, files in os.walk("."):
+              dirs[:] = [d for d in dirs if d not in {".git", ".gradle", "build", ".idea", ".kotlin"}]
+              for filename in files:
+                  path = Path(root) / filename
+                  try:
+                      text = path.read_text(encoding="utf-8")
+                  except (UnicodeDecodeError, OSError):
+                      continue
+                  updated = text.replace("libaxeron.so", "libdjalimen.so")
+                  updated = updated.replace("axeron_server", "djalimen_server")
+                  if updated != text:
+                      path.write_text(updated, encoding="utf-8")
+
+          # Device shell identity shown to plugins and terminal sessions.
+          service = Path("server/src/main/java/frb/axeron/server/AxeronService.kt")
+          service_text = service.read_text(encoding="utf-8")
+          if '.put("HOSTNAME", "axeron")' not in service_text:
+              raise SystemExit("Server HOSTNAME anchor missing")
+          service_text = service_text.replace('.put("HOSTNAME", "axeron")', '.put("HOSTNAME", "djalimen")', 1)
+          service.write_text(service_text, encoding="utf-8")
+
+          # Ensure the renamed native executable and paired-device label are present in source.
+          if "libaxeron.so" in cmake.read_text(encoding="utf-8"):
+              raise SystemExit("Legacy native starter filename remains in CMake")
+          if 'AdbKey(keyStore(), "djalimen")' not in pairing.read_text(encoding="utf-8"):
+              raise SystemExit("DJALIMEN ADB pairing label verification failed")
+          print("Renamed native starter to libdjalimen.so; updated paired-device and shell host labels.")
+
+
+          # Replace legacy Axeron small notification icons with an original DJALIMEN mark.
+          # Small notification icons must be monochrome for Android System UI.
+          notification_icon = """<?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="24dp" android:height="24dp"
+              android:viewportWidth="24" android:viewportHeight="24">
+              <path android:fillColor="#FFFFFFFF"
+                  android:pathData="M12,2 L22,12 L12,22 L2,12 Z M12,5.2 L5.2,12 L12,18.8 L18.8,12 Z"/>
+              <path android:fillColor="#FFFFFFFF"
+                  android:pathData="M8,7 L13,7 C16.1,7 18,9 18,12 C18,15 16.1,17 13,17 L8,17 Z M10.5,9.3 L10.5,14.7 L13,14.7 C14.7,14.7 15.5,13.7 15.5,12 C15.5,10.3 14.7,9.3 13,9.3 Z"
+                  android:fillType="evenOdd"/>
+          </vector>
+          """
+          for module in ("adb", "manager"):
+              icon_path = Path(module) / "src/main/res/drawable/ic_djalimen_notification.xml"
+              icon_path.parent.mkdir(parents=True, exist_ok=True)
+              icon_path.write_text(notification_icon, encoding="utf-8")
+
+          adb_service = Path("adb/src/main/java/frb/axeron/adb/AdbPairingService.kt")
+          adb_text = adb_service.read_text(encoding="utf-8")
+          if ".setSmallIcon(R.drawable.ic_axeron)" not in adb_text:
+              raise SystemExit("ADB pairing notification icon anchor missing")
+          adb_text = adb_text.replace(".setSmallIcon(R.drawable.ic_axeron)", ".setSmallIcon(R.drawable.ic_djalimen_notification)", 1)
+          adb_service.write_text(adb_text, encoding="utf-8")
+
           watchdog = Path("manager/src/main/java/com/djalimen/manager/adb/BootWatchdogService.kt")
           watchdog_text = watchdog.read_text(encoding="utf-8")
           if ".setSmallIcon(R.drawable.ic_axeron)" not in watchdog_text:

@@ -358,7 +358,7 @@ jobs:
                 }
             }
 
-"""
+          """
           s = s[:hero_start] + nexus_home + s[hero_end:]
           home_ui.write_text(s, encoding="utf-8")
           print("Applied DJALIMEN NEXUS Home dashboard; existing activation and module logic preserved.")

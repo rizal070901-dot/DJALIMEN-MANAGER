@@ -293,6 +293,76 @@ jobs:
           )
           home_ui.write_text(s, encoding="utf-8")
 
+          # Replace the compact hero with a dedicated DJALIMEN NEXUS dashboard.
+          # Existing navigation, activation callbacks, and service logic remain unchanged.
+          s = home_ui.read_text(encoding="utf-8")
+          hero_start = s.find("            // DJALIMEN cyber command dashboard")
+          hero_end = s.find("            // Status and the plugin/privilege counts read as one card:", hero_start)
+          if hero_start < 0 or hero_end < 0:
+              raise SystemExit("DJALIMEN Home hero boundaries missing; refusing unsafe UI rewrite.")
+          nexus_home = """            // DJALIMEN NEXUS — original command dashboard, separate from upstream Home styling.
+            Surface(
+                color = Color(0xFF07121B),
+                shape = AxCardShape,
+                modifier = Modifier.fillMaxWidth().border(1.dp, Color(0xFF1B665B), AxCardShape)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .clip(AxCardShape)
+                        .background(Brush.linearGradient(listOf(Color(0xFF123C38), Color(0xFF0B222B), Color(0xFF08131F), Color(0xFF101B32))))
+                        .padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(15.dp)
+                ) {
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Surface(color = Color(0xFF65F0C1).copy(alpha = 0.12f), shape = AxCardShape) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_djalimen_mark),
+                                contentDescription = "DJALIMEN",
+                                tint = Color(0xFF65F0C1),
+                                modifier = Modifier.padding(10.dp).size(34.dp)
+                            )
+                        }
+                        Spacer(Modifier.width(11.dp))
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text("DJALIMEN", color = Color(0xFFF0FFF9), fontSize = 19.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+                            Text("N E X U S   /   ANDROID CONTROL", color = Color(0xFF82BFB0), fontFamily = FontFamily.Monospace, fontSize = 9.sp, letterSpacing = 0.7.sp)
+                        }
+                        Surface(color = if (isRunning) Color(0xFF174C3F) else Color(0xFF263448), shape = CircleShape) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Box(Modifier.size(6.dp).background(if (isRunning) Color(0xFF69FFC6) else Color(0xFF9DB4C8), CircleShape))
+                                Text(if (isRunning) "ONLINE" else "READY", color = if (isRunning) Color(0xFF9BFFD9) else Color(0xFFD0DFEC), fontFamily = FontFamily.Monospace, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                    HorizontalDivider(color = Color(0xFF4A8C7E).copy(alpha = 0.42f))
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("YOUR DEVICE. YOUR RULES.", color = Color(0xFFF2FFF9), fontSize = 22.sp, lineHeight = 27.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.2.sp)
+                        Text("Pusat kendali untuk akses sistem, modul, dan perangkat Android dalam satu ruang.", color = Color(0xFFA9C9C3), fontSize = 12.sp, lineHeight = 18.sp)
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("01  SYSTEM", "02  MODULES", "03  TERMINAL").forEach { item ->
+                            Surface(modifier = Modifier.weight(1f), color = Color(0xFF071923).copy(alpha = 0.72f), shape = AxCardShape) {
+                                Text(item, modifier = Modifier.padding(vertical = 10.dp, horizontal = 7.dp), color = Color(0xFF8CE8CA), fontFamily = FontFamily.Monospace, fontSize = 8.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, maxLines = 1)
+                            }
+                        }
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text("NEXUS CORE  /  DJM", color = Color(0xFF6D9D92), fontFamily = FontFamily.Monospace, fontSize = 9.sp, letterSpacing = 0.8.sp)
+                        Spacer(Modifier.weight(1f))
+                        Text("BUILD ${BuildConfig.VERSION_NAME}", color = Color(0xFF6D9D92), fontFamily = FontFamily.Monospace, fontSize = 9.sp)
+                    }
+                }
+            }
+
+"""
+          s = s[:hero_start] + nexus_home + s[hero_end:]
+          home_ui.write_text(s, encoding="utf-8")
+          print("Applied DJALIMEN NEXUS Home dashboard; existing activation and module logic preserved.")
+
           # Brand the plugin manager's visible console output without changing internal process/env names.
           igniter = Path("reignite/src/main/java/frb/axeron/reignite/Igniter.kt")
           igniter_text = igniter.read_text(encoding="utf-8")

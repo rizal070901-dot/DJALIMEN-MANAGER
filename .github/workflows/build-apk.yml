@@ -548,6 +548,47 @@ jobs:
                   xml_file.write_text(updated, encoding="utf-8")
                   print("Rebranded ADB notification strings:", xml_file)
 
+          # Force the Indonesian/English ADB notification labels to DJALIMEN.
+          # This runs after all branding passes so no later patch can restore upstream text.
+          adb_notification_values = {
+              "adb_pairing_starting_text": ("Memulai layanan DJALIMEN…", "Starting DJALIMEN…"),
+              "adb_pairing_activated_title": ("DJALIMEN aktif", "DJALIMEN activated"),
+              "adb_pairing_start_failed_title": ("Gagal memulai DJALIMEN", "Couldn’t start DJALIMEN"),
+          }
+          for locale_dir in ("values", "values-in"):
+              notification_xml = adb_res / locale_dir / "strings.xml"
+              if not notification_xml.exists():
+                  raise SystemExit("Missing ADB notification localization: " + str(notification_xml))
+              xml_text = notification_xml.read_text(encoding="utf-8")
+              for resource_name, localized_values in adb_notification_values.items():
+                  value = localized_values[0] if locale_dir == "values-in" else localized_values[1]
+                  tag = r'(<string\\s+name="' + re.escape(resource_name) + r'"[^>]*>).*?(</string>)'
+                  xml_text, count = re.subn(tag, lambda m: m.group(1) + value + m.group(2), xml_text, count=1, flags=re.S)
+                  if count != 1:
+                      raise SystemExit("Could not update ADB notification string " + resource_name + " in " + str(notification_xml))
+              if re.search(r"(?i)AxManager|Axeron", re.sub(r"<[^>]+>", "", xml_text)):
+                  raise SystemExit("Legacy brand remains in ADB notification text: " + str(notification_xml))
+              notification_xml.write_text(xml_text, encoding="utf-8")
+
+          # Patch the persistent boot notification/log too, independently of earlier patches.
+          boot_watchdog_source = Path("manager/src/main/java/frb/axeron/manager/adb/BootWatchdogService.kt")
+          boot_source_text = boot_watchdog_source.read_text(encoding="utf-8")
+          boot_source_text = boot_source_text.replace(
+              'ActivationLog.success("AxManager is active")',
+              'ActivationLog.success("DJALIMEN aktif")'
+          )
+          if 'ActivationLog.success("AxManager is active")' in boot_source_text:
+              raise SystemExit("Legacy AxManager activation message remains in BootWatchdogService")
+          boot_watchdog_source.write_text(boot_source_text, encoding="utf-8")
+
+          # Final audit across every module's localized string resources, not only :manager.
+          for strings_file in Path(".").glob("**/src/main/res/values*/strings.xml"):
+              resource_text = strings_file.read_text(encoding="utf-8")
+              visible_text = re.sub(r"<[^>]+>", "", resource_text)
+              if re.search(r"(?i)AxManager|Axeron", visible_text):
+                  raise SystemExit("Legacy branding remains in visible resource strings: " + str(strings_file))
+          print("PASS: all module notification/localized strings and boot activation text use DJALIMEN.")
+
           # Explicit notification-title assertions prevent this regression.
           for resource_file in list(res.glob("values*/strings.xml")) + list(adb_res.glob("values*/strings.xml")):
               xml_text = resource_file.read_text(encoding="utf-8")

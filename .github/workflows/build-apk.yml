@@ -532,6 +532,29 @@ jobs:
               source_text = source_file.read_text(encoding="utf-8")
               if "setSmallIcon(R.drawable.ic_djalimen_notification)" not in source_text:
                   raise SystemExit("DJALIMEN notification icon not configured: " + str(source_file))
+
+          # The ADB pairing notification belongs to the separate :adb module.
+          # The previous sweep only covered :manager resources, so its Indonesian
+          # notification title could still say "AxManager aktif".
+          adb_res = Path("adb/src/main/res")
+          for xml_file in adb_res.glob("values*/strings.xml"):
+              original = xml_file.read_text(encoding="utf-8")
+              updated = original
+              for pattern, replacement in brand_patterns:
+                  updated = re.sub(pattern, replacement, updated)
+              if re.search(r"(?i)AxManager|Axeron|AX-Permission|AX-Stealth Mode|Ax-Environment", updated):
+                  raise SystemExit("Legacy brand remains in ADB module string resources: " + str(xml_file))
+              if updated != original:
+                  xml_file.write_text(updated, encoding="utf-8")
+                  print("Rebranded ADB notification strings:", xml_file)
+
+          # Explicit notification-title assertions prevent this regression.
+          for resource_file in list(res.glob("values*/strings.xml")) + list(adb_res.glob("values*/strings.xml")):
+              xml_text = resource_file.read_text(encoding="utf-8")
+              if re.search(r">[^<>]*AxManager[^<>]*<", xml_text, re.I):
+                  raise SystemExit("Legacy AxManager text remains in notification/app resources: " + str(resource_file))
+          print("PASS: manager and ADB-module localized notification strings use DJALIMEN branding.")
+
           print("PASS: all localized app labels, visible legacy-brand strings and notification icon references audited.")
 
 

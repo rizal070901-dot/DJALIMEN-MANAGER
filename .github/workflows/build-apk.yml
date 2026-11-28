@@ -876,7 +876,7 @@ jobs:
           id_strings.write_text(source, encoding="utf-8")
 
           # Notification body and service status are visible to users; preserve service behavior.
-          watchdog = Path("manager/src/main/java/frb/axeron/manager/adb/BootWatchdogService.kt")
+          watchdog = Path("manager/src/main/java/com/djalimen/manager/adb/BootWatchdogService.kt")
           source = watchdog.read_text(encoding="utf-8")
           source = source.replace('ActivationLog.success("AxManager is active")',
                                   'ActivationLog.success("DJALIMEN MANAGER aktif")')
@@ -924,10 +924,10 @@ jobs:
               brush_import = "import androidx.compose.ui.graphics.Brush"
               if brush_import not in source:
                   source = source.replace("import androidx.compose.ui.graphics.Color",
-                                          "import androidx.compose.ui.graphics.Color\\n" + brush_import, 1)
+                                          "import androidx.compose.ui.graphics.Color\n" + brush_import, 1)
               if shape_import not in source:
                   source = source.replace("import androidx.compose.foundation.shape.CircleShape",
-                                          "import androidx.compose.foundation.shape.CircleShape\\n" + shape_import, 1)
+                                          "import androidx.compose.foundation.shape.CircleShape\n" + shape_import, 1)
               anchor = '            SettingsSectionHeader(stringResource(R.string.settings_section_environment))'
               hero = """            Surface(
                           color = Color(0xFF101D34),

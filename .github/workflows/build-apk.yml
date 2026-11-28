@@ -103,14 +103,19 @@ jobs:
           print("Updated string resources:", *changed, sep="\\n - ")
           print("Verified launcher label: DJALIMEN MANAGER")
 
-          # Replace Axeron branding only in user-visible localized strings.
-          # Keep resource keys, Binder/JNI symbols, protocol names and executable paths intact.
+          # Replace branding only in XML element text, never in resource names/keys.
+          # R.string identifiers are part of the compiled API used by Kotlin source.
+          import re
           for p in res.glob("values*/strings.xml"):
               s = p.read_text(encoding="utf-8")
-              updated = s.replace("Axeron", "DJALIMEN").replace("AXERON", "DJALIMEN").replace("axeron", "DJALIMEN")
+              def rebrand_text(match):
+                  value = match.group(1)
+                  value = value.replace("Axeron", "DJALIMEN").replace("AXERON", "DJALIMEN").replace("axeron", "DJALIMEN")
+                  return ">" + value + "<"
+              updated = re.sub(r">([^<>]+)<", rebrand_text, s)
               if updated != s:
                   p.write_text(updated, encoding="utf-8")
-                  print("Rebranded visible Axeron strings:", p)
+                  print("Rebranded visible Axeron string values while preserving resource keys:", p)
 
           # Use the DJALIMEN mark in the permission bottom sheet instead of the legacy logo.
           permission_ui = Path("manager/src/main/java/frb/axeron/manager/ui/RequestPermissionActivity.kt")
